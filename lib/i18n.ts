@@ -1,0 +1,188 @@
+import i18n from "i18next";
+import { initReactI18next } from "react-i18next";
+
+const resources = {
+  my: {
+    translation: {
+      // Welcome
+      "welcome.hello": "မင်္ဂလာပါ",
+      "welcome.little": "ကလေးများ",
+      "welcome.explorers": "စူးစမ်းရှာဖွေသူများ!",
+      "welcome.tagline": "ရှာဖွေ။ သင်ယူ။ ဖန်တီး။ ကြီးပြင်း။",
+      "welcome.playGuest": "ဧည့်သည်အဖြစ် ကစားမယ်",
+      "welcome.login": "အကောင့်ဝင်ရန် / ဖန်တီးရန်",
+      "welcome.teacher": "ဆရာ/မ ဝင်ရန်",
+      "welcome.help": "အကူအညီနှင့် ပံ့ပိုးမှု",
+
+      // Grades
+      "grades.selectLabel": "သင့်အဆင့်ကို ရွေးပါ",
+      "grades.title1": "ဘယ်အဆင့်ကို",
+      "grades.title2": "စတင်မလဲ?",
+      "grades.subtitle": "သင့်အတန်းကို ရွေးချယ်လိုက်ပါ",
+      "grades.kg": "မူကြို",
+      "grades.g1": "ပထမတန်း",
+      "grades.g2": "ဒုတိယတန်း",
+      "grades.g3": "တတိယတန်း",
+      "grades.g4": "စတုတ္ထတန်း",
+      "grades.g5": "ပဉ္စမတန်း",
+      "grades.g6": "ဆဋ္ဌမတန်း",
+
+      // Grade detail
+      "grade.progress": "သင့်တိုးတက်မှု",
+      "grade.lessons": "သင်ခန်းစာများ",
+      "grade.startQuiz": "Quiz စတင်မယ်",
+      "grade.lessonsDone": "သင်ခန်းစာ",
+
+      // Bottom nav
+      "nav.learn": "သင်ယူ",
+      "nav.leaderboard": "အဆင့်",
+      "nav.mailbox": "စာပို့",
+      "nav.settings": "ဆက်တင်",
+
+      // Leaderboard
+      "leaderboard.title": "ထိပ်တန်း ကစားသမားများ",
+      "leaderboard.thisWeek": "ဒီတစ်ပတ်",
+      "leaderboard.allTime": "အချိန်အားလုံး",
+      "leaderboard.you": "သင်",
+      "leaderboard.pts": "မှတ်",
+      "leaderboard.rank": "အဆင့်",
+      "leaderboard.empty": "ဒီအချိန် ကစားသမား မရှိသေးပါ",
+
+      "subjects.title": "ဘာသာရပ် ရွေးပါ",
+      "subjects.subtitle": "သင်ယူလိုတဲ့ ဘာသာရပ်ကို ရွေးချယ်ပါ",
+      "subjects.myanmar": "မြန်မာစာ",
+      "subjects.english": "အင်္ဂလိပ်",
+      "subjects.math": "သင်္ချာ",
+      "subjects.science": "သိပ္ပံ",
+      "subjects.history": "သမိုင်း",
+      "subjects.geography": "ပထဝီ",
+
+      // Mailbox
+      "mailbox.title": "စာတိုက်",
+      "mailbox.empty": "စာမရှိသေးပါ",
+      "mailbox.from": "မှ",
+      "mailbox.markRead": "ဖတ်ပြီးအဖြစ် မှတ်မယ်",
+      "mailbox.unread": "မဖတ်ရသေး",
+      "mailbox.read": "ဖတ်ပြီး",
+
+      // Settings
+      "settings.title": "ဆက်တင်",
+      "settings.language": "ဘာသာစကား",
+      "settings.notifications": "အသိပေးချက်များ",
+      "settings.sound": "အသံ",
+      "settings.haptics": "တုန်ခါမှု",
+      "settings.about": "အကြောင်း",
+      "settings.logout": "ထွက်မယ်",
+      "settings.version": "ဗားရှင်း",
+
+      // Auth
+      "auth.loginTitle": "အကောင့်ဝင်ရန်",
+      "auth.signupTitle": "အကောင့်ဖန်တီးရန်",
+      "auth.email": "အီးမေးလ်",
+      "auth.password": "စကားဝှက်",
+      "auth.confirmPassword": "စကားဝှက် အတည်ပြုပါ",
+      "auth.name": "အမည်",
+      "auth.grade": "အတန်း",
+      "auth.login": "ဝင်မယ်",
+      "auth.signup": "ဖန်တီးမယ်",
+      "auth.switchToSignup": "အကောင့်မရှိဘူးလား? ဖန်တီးမယ်",
+      "auth.switchToLogin": "အကောင့်ရှိပြီးသားလား? ဝင်မယ်",
+      "auth.orGuest": "ဧည့်သည်အဖြစ် ဆက်မယ်",
+      "auth.role": "အခန်းကဏ္ဍ",
+      "auth.student": "ကျောင်းသား",
+      "auth.teacher": "ဆရာ/မ",
+    },
+  },
+  en: {
+    translation: {
+      "welcome.hello": "HELLO,",
+      "welcome.little": "LITTLE",
+      "welcome.explorers": "EXPLORERS!",
+      "welcome.tagline": "Discover. Learn. Create. Grow.",
+      "welcome.playGuest": "Play as Guest",
+      "welcome.login": "Log in / Sign in",
+      "welcome.teacher": "Teacher Access",
+      "welcome.help": "Help & Support",
+
+      "grades.selectLabel": "SELECT YOUR LEVEL",
+      "grades.title1": "Which level",
+      "grades.title2": "will you start?",
+      "grades.subtitle": "Choose your grade",
+      "grades.kg": "Kindergarten",
+      "grades.g1": "Grade 1",
+      "grades.g2": "Grade 2",
+      "grades.g3": "Grade 3",
+      "grades.g4": "Grade 4",
+      "grades.g5": "Grade 5",
+      "grades.g6": "Grade 6",
+
+      "grade.progress": "Your Progress",
+      "grade.lessons": "Lessons",
+      "grade.startQuiz": "Start Quiz",
+      "grade.lessonsDone": "lessons",
+
+      "nav.learn": "Learn",
+      "nav.leaderboard": "Ranks",
+      "nav.mailbox": "Mail",
+      "nav.settings": "Settings",
+
+      "leaderboard.title": "Top Players",
+      "leaderboard.thisWeek": "This Week",
+      "leaderboard.allTime": "All Time",
+      "leaderboard.you": "You",
+      "leaderboard.pts": "pts",
+      "leaderboard.rank": "Rank",
+      "leaderboard.empty": "No players yet",
+
+      "subjects.title": "Choose Subject",
+      "subjects.subtitle": "Select a subject to learn",
+      "subjects.myanmar": "Myanmar",
+      "subjects.english": "English",
+      "subjects.math": "Math",
+      "subjects.science": "Science",
+      "subjects.history": "History",
+      "subjects.geography": "Geography",
+
+      "mailbox.title": "Mailbox",
+      "mailbox.empty": "No messages yet",
+      "mailbox.from": "From",
+      "mailbox.markRead": "Mark as read",
+      "mailbox.unread": "Unread",
+      "mailbox.read": "Read",
+
+      "settings.title": "Settings",
+      "settings.language": "Language",
+      "settings.notifications": "Notifications",
+      "settings.sound": "Sound",
+      "settings.haptics": "Haptics",
+      "settings.about": "About",
+      "settings.logout": "Log out",
+      "settings.version": "Version",
+
+      "auth.loginTitle": "Log In",
+      "auth.signupTitle": "Create Account",
+      "auth.email": "Email",
+      "auth.password": "Password",
+      "auth.confirmPassword": "Confirm Password",
+      "auth.name": "Name",
+      "auth.grade": "Grade",
+      "auth.login": "Log In",
+      "auth.signup": "Sign Up",
+      "auth.switchToSignup": "No account? Sign up",
+      "auth.switchToLogin": "Have account? Log in",
+      "auth.orGuest": "Continue as guest",
+      "auth.role": "Role",
+      "auth.student": "Student",
+      "auth.teacher": "Teacher",
+    },
+  },
+};
+
+i18n.use(initReactI18next).init({
+  resources,
+  lng: "my",
+  fallbackLng: "en",
+  interpolation: { escapeValue: false },
+});
+
+export default i18n;
