@@ -40,14 +40,16 @@ function isValidYoutube(url: string) {
 export default function LessonEditor() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { id, subject: initialSubject } = useLocalSearchParams<{
+  const { id, subject: initialSubject, grade: initialGrade } = useLocalSearchParams<{
     id?: string;
     subject?: string;
+    grade?: string;
   }>();
 
   const isEdit = !!id;
 
   const [subject, setSubject] = useState(initialSubject ?? "math");
+  const [grade, setGrade] = useState(initialGrade ?? "g1"); // ⭐ Grade ကို လက်ခံပါ
   const [title, setTitle] = useState("");
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [content, setContent] = useState("");
@@ -59,6 +61,7 @@ export default function LessonEditor() {
       const l = LessonsStore.get(id!);
       if (l) {
         setSubject(l.subject);
+        setGrade(l.grade); // ⭐ edit လုပ်ရင် grade ကိုပါ ပြင်ခွင့်ပြု
         setTitle(l.title);
         setYoutubeUrl(l.youtubeUrl);
         setContent(l.content);
@@ -83,6 +86,7 @@ export default function LessonEditor() {
     if (isEdit) {
       LessonsStore.update(id!, {
         subject,
+        grade, // ⭐ update မှာပါ ထည့်ပါ
         title,
         youtubeUrl,
         content,
@@ -91,7 +95,7 @@ export default function LessonEditor() {
     } else {
       LessonsStore.add({
         subject,
-        grade: "g3",
+        grade, // ⭐ Hardcode "g3" အစား grade state ကို သုံးပါ
         title,
         youtubeUrl,
         content,
@@ -135,51 +139,22 @@ export default function LessonEditor() {
           }}
           showsVerticalScrollIndicator={false}
         >
-          {/* Top bar */}
-          <View
-            style={{
-              marginTop: 16,
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
+          <View style={{ marginTop: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
             <CandyIconButton emoji="←" onPress={() => router.back()} size={44} />
             {isEdit && (
-              <CandyIconButton
-                emoji="🗑️"
-                onPress={handleDelete}
-                size={44}
-                bg="#FFE0E6"
-              />
+              <CandyIconButton emoji="🗑️" onPress={handleDelete} size={44} bg="#FFE0E6" />
             )}
           </View>
 
-          {/* Hero */}
           <Animated.View entering={FadeInDown.delay(100).springify()} style={{ marginTop: 20 }}>
-            <Text
-              style={{
-                fontFamily: FONT.extrabold,
-                fontSize: isTablet ? 34 : 26,
-                color: CANDY.text,
-                letterSpacing: -0.8,
-              }}
-            >
+            <Text style={{ fontFamily: FONT.extrabold, fontSize: isTablet ? 34 : 26, color: CANDY.text, letterSpacing: -0.8 }}>
               {isEdit ? "✏️ သင်ခန်းစာ ပြင်" : "➕ သင်ခန်းစာ အသစ်"}
             </Text>
-            <Text
-              style={{
-                fontFamily: FONT.semibold,
-                fontSize: 14,
-                color: CANDY.textMuted,
-                marginTop: 6,
-              }}
-            >
+            <Text style={{ fontFamily: FONT.semibold, fontSize: 14, color: CANDY.textMuted, marginTop: 6 }}>
               YouTube URL နဲ့ content ကို ထည့်ပါ
             </Text>
           </Animated.View>
 
-          {/* Subject picker */}
           <Animated.View entering={FadeInDown.delay(200).springify()} style={{ marginTop: 24 }}>
             <Label>ဘာသာရပ်</Label>
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
@@ -201,13 +176,11 @@ export default function LessonEditor() {
             </View>
           </Animated.View>
 
-          {/* Title */}
           <Animated.View entering={FadeInDown.delay(250).springify()} style={{ marginTop: 20 }}>
             <Label>ခေါင်းစဉ် *</Label>
             <Input value={title} onChangeText={setTitle} placeholder="ဥပမာ — သင်ခန်းစာ ၁" />
           </Animated.View>
 
-          {/* YouTube URL */}
           <Animated.View entering={FadeInDown.delay(300).springify()} style={{ marginTop: 16 }}>
             <Label>YouTube Unlisted URL</Label>
             <Input
@@ -218,21 +191,12 @@ export default function LessonEditor() {
               keyboardType="url"
             />
             {youtubeUrl.length > 0 && (
-              <Text
-                style={{
-                  fontFamily: FONT.semibold,
-                  fontSize: 11,
-                  color: isValidYoutube(youtubeUrl) ? "#1E7A6F" : "#C2402B",
-                  marginTop: 6,
-                  marginLeft: 4,
-                }}
-              >
+              <Text style={{ fontFamily: FONT.semibold, fontSize: 11, color: isValidYoutube(youtubeUrl) ? "#1E7A6F" : "#C2402B", marginTop: 6, marginLeft: 4 }}>
                 {isValidYoutube(youtubeUrl) ? "✓ URL မှန်ပါတယ်" : "✗ URL မမှန်ပါ"}
               </Text>
             )}
           </Animated.View>
 
-          {/* Content */}
           <Animated.View entering={FadeInDown.delay(350).springify()} style={{ marginTop: 16 }}>
             <Label>အကြောင်းအရာ</Label>
             <Input
@@ -245,34 +209,12 @@ export default function LessonEditor() {
             />
           </Animated.View>
 
-          {/* Published toggle */}
           <Animated.View entering={FadeInDown.delay(400).springify()} style={{ marginTop: 16 }}>
             <CandyCard>
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                }}
-              >
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
                 <View style={{ flex: 1 }}>
-                  <Text
-                    style={{
-                      fontFamily: FONT.extrabold,
-                      fontSize: 14,
-                      color: CANDY.text,
-                    }}
-                  >
-                    Published
-                  </Text>
-                  <Text
-                    style={{
-                      fontFamily: FONT.semibold,
-                      fontSize: 11,
-                      color: CANDY.textMuted,
-                      marginTop: 2,
-                    }}
-                  >
+                  <Text style={{ fontFamily: FONT.extrabold, fontSize: 14, color: CANDY.text }}>Published</Text>
+                  <Text style={{ fontFamily: FONT.semibold, fontSize: 11, color: CANDY.textMuted, marginTop: 2 }}>
                     Student တွေ မြင်နိုင်မယ်
                   </Text>
                 </View>
@@ -289,7 +231,6 @@ export default function LessonEditor() {
             </CandyCard>
           </Animated.View>
 
-          {/* Save */}
           <Animated.View entering={FadeInDown.delay(450).springify()} style={{ marginTop: 24 }}>
             <CandyButton
               label={saving ? "သိမ်းနေသည်..." : isEdit ? "ပြင်ဆင်ချက် သိမ်းမယ်" : "သင်ခန်းစာ ထည့်မယ်"}
@@ -307,19 +248,9 @@ export default function LessonEditor() {
   );
 }
 
-// Helpers
 function Label({ children }: { children: React.ReactNode }) {
   return (
-    <Text
-      style={{
-        fontFamily: FONT.extrabold,
-        fontSize: 12,
-        color: CANDY.textMuted,
-        marginBottom: 8,
-        marginLeft: 4,
-        letterSpacing: 0.5,
-      }}
-    >
+    <Text style={{ fontFamily: FONT.extrabold, fontSize: 12, color: CANDY.textMuted, marginBottom: 8, marginLeft: 4, letterSpacing: 0.5 }}>
       {children}
     </Text>
   );
@@ -349,17 +280,7 @@ function Input({ style, ...props }: any) {
   );
 }
 
-function Chip({
-  active,
-  onPress,
-  emoji,
-  label,
-}: {
-  active: boolean;
-  onPress: () => void;
-  emoji: string;
-  label: string;
-}) {
+function Chip({ active, onPress, emoji, label }: { active: boolean; onPress: () => void; emoji: string; label: string }) {
   return (
     <View
       onTouchEnd={onPress}
@@ -376,13 +297,7 @@ function Chip({
       }}
     >
       <Text style={{ fontSize: 14 }}>{emoji}</Text>
-      <Text
-        style={{
-          fontFamily: FONT.extrabold,
-          fontSize: 12,
-          color: active ? "#FFF" : CANDY.text,
-        }}
-      >
+      <Text style={{ fontFamily: FONT.extrabold, fontSize: 12, color: active ? "#FFF" : CANDY.text }}>
         {label}
       </Text>
     </View>

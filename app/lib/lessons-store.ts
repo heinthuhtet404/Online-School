@@ -10,7 +10,6 @@ export type Lesson = {
   updatedAt: string;
 };
 
-// localStorage-like in-memory store
 let STORE: Lesson[] = [
   {
     id: "l1",
@@ -38,23 +37,32 @@ let STORE: Lesson[] = [
 
 export const LessonsStore = {
   getAll: () => [...STORE],
-  getBySubject: (subject: string) =>
-    STORE.filter((l) => l.subject === subject).sort((a, b) => a.order - b.order),
+  
+  // ⭐ ဒီနေရာက အရေးကြီးဆုံးပါ (grade နဲ့ subject ကို နှစ်ခုလုံး စစ်ရပါမယ်)
+  getByGradeAndSubject: (grade: string, subject: string) =>
+    STORE.filter((l) => l.grade === grade && l.subject === subject).sort((a, b) => a.order - b.order),
+  
   get: (id: string) => STORE.find((l) => l.id === id),
+  
   add: (lesson: Omit<Lesson, "id" | "updatedAt" | "order">) => {
     const id = `l${Date.now()}`;
-    const maxOrder = Math.max(0, ...STORE.filter((l) => l.subject === lesson.subject).map((l) => l.order));
+    const maxOrder = Math.max(
+      0,
+      ...STORE.filter((l) => l.subject === lesson.subject && l.grade === lesson.grade).map((l) => l.order)
+    );
     STORE = [
       ...STORE,
       { ...lesson, id, order: maxOrder + 1, updatedAt: new Date().toISOString().slice(0, 10) },
     ];
     return id;
   },
+  
   update: (id: string, updates: Partial<Lesson>) => {
     STORE = STORE.map((l) =>
       l.id === id ? { ...l, ...updates, updatedAt: new Date().toISOString().slice(0, 10) } : l
     );
   },
+  
   delete: (id: string) => {
     STORE = STORE.filter((l) => l.id !== id);
   },

@@ -10,51 +10,48 @@ export type Lesson = {
   updatedAt: string;
 };
 
-// localStorage-like in-memory store
-let STORE: Lesson[] = [
-  {
-    id: "l1",
-    subject: "math",
-    grade: "g3",
-    title: "သင်ခန်းစာ ၁ - အခြေခံ ကိန်းဂဏန်း",
-    youtubeUrl: "https://youtu.be/DDhdFSIW-MA",
-    content: "ဒီသင်ခန်းစာမှာ အခြေခံ ကိန်းဂဏန်းတွေကို လေ့လာပါမယ်။",
-    published: true,
-    order: 1,
-    updatedAt: "2026-11-08",
-  },
-  {
-    id: "l2",
-    subject: "math",
-    grade: "g3",
-    title: "သင်ခန်းစာ ၂ - ပေါင်းခြင်း",
-    youtubeUrl: "https://youtu.be/DDhdFSIW-MA",
-    content: "ပေါင်းခြင်း အခြေခံ သဘောတရား။",
-    published: true,
-    order: 2,
-    updatedAt: "2026-11-08",
-  },
-];
+let STORE: Lesson[] = [];
 
 export const LessonsStore = {
   getAll: () => [...STORE],
-  getBySubject: (subject: string) =>
-    STORE.filter((l) => l.subject === subject).sort((a, b) => a.order - b.order),
+
+  // ⭐ အတန်းနဲ့ ဘာသာရပ် နှစ်ခုလုံးကို တိုက်ဆိုင်စစ်ဆေးပြီးမှ ဆွဲထုတ်ပေးမယ်
+  getByGradeAndSubject: (grade: string, subject: string) => {
+    return STORE.filter((l) => l.grade === grade && l.subject === subject).sort(
+      (a, b) => a.order - b.order
+    );
+  },
+
   get: (id: string) => STORE.find((l) => l.id === id),
+
   add: (lesson: Omit<Lesson, "id" | "updatedAt" | "order">) => {
     const id = `l${Date.now()}`;
-    const maxOrder = Math.max(0, ...STORE.filter((l) => l.subject === lesson.subject).map((l) => l.order));
+    // ⭐ အတန်းနဲ့ ဘာသာရပ် တူတဲ့အထဲကနေပဲ Order အသစ်တွက်မယ်
+    const sameGroup = STORE.filter(
+      (l) => l.subject === lesson.subject && l.grade === lesson.grade
+    );
+    const maxOrder = sameGroup.length > 0 ? Math.max(...sameGroup.map((l) => l.order)) : 0;
+
     STORE = [
       ...STORE,
-      { ...lesson, id, order: maxOrder + 1, updatedAt: new Date().toISOString().slice(0, 10) },
+      {
+        ...lesson,
+        id,
+        order: maxOrder + 1,
+        updatedAt: new Date().toISOString().slice(0, 10),
+      },
     ];
     return id;
   },
+
   update: (id: string, updates: Partial<Lesson>) => {
     STORE = STORE.map((l) =>
-      l.id === id ? { ...l, ...updates, updatedAt: new Date().toISOString().slice(0, 10) } : l
+      l.id === id
+        ? { ...l, ...updates, updatedAt: new Date().toISOString().slice(0, 10) }
+        : l
     );
   },
+
   delete: (id: string) => {
     STORE = STORE.filter((l) => l.id !== id);
   },

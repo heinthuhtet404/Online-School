@@ -31,12 +31,12 @@ export default function StudentSubjectLessons() {
 
   useFocusEffect(
     useCallback(() => {
-      if (subject) {
-        // ကျောင်းသားတွေက Published ဖြစ်တဲ့ သင်ခန်းစာတွေကိုပဲ မြင်ရမယ်
-        const allLessons = LessonsStore.getBySubject(subject);
+      if (subject && level) {
+        // အတန်းနဲ့ ဘာသာရပ် နှစ်ခုလုံးကို စစ်ထုတ်ပြီး Published ဖြစ်တာကိုပဲ ပြပါ
+        const allLessons = LessonsStore.getByGradeAndSubject(level, subject);
         setLessons(allLessons.filter((l) => l.published));
       }
-    }, [subject])
+    }, [subject, level])
   );
 
   return (
@@ -79,7 +79,7 @@ export default function StudentSubjectLessons() {
                 {t(meta.nameKey)}
               </Text>
               <Text style={{ fontFamily: FONT.semibold, fontSize: 13, color: CANDY.text, opacity: 0.7, marginTop: 2 }}>
-                {lessons.length} သင်ခန်းစာ
+                {level?.toUpperCase()} · {lessons.length} သင်ခန်းစာ
               </Text>
             </View>
           </View>
@@ -100,7 +100,6 @@ export default function StudentSubjectLessons() {
                   bg={CANDY.surface}
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    // ကျောင်းသား Detail Page ကို သွားမယ်
                     router.push(`/(student)/lesson/${level}/${subject}/${l.id}`);
                   }}
                 >
