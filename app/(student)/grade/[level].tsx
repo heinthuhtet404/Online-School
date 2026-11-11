@@ -1,6 +1,5 @@
-import { View, Text, Pressable, ScrollView, Dimensions } from "react-native";
+import { View, Text, Dimensions, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import Animated, {
@@ -10,99 +9,90 @@ import Animated, {
   FadeInDown,
 } from "react-native-reanimated";
 import { useTranslation } from "react-i18next";
-import { useTheme } from "../../../lib/theme-context";
+import { CANDY, FONT, R } from "@/lib/design";
+import CandyPage from "@/components/ui/CandyPage";
+import CandyIconButton from "@/components/ui/CandyIconButton";
 
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
 
-// ===== Subjects =====
 const SUBJECTS = [
-  { id: "myanmar", nameKey: "subjects.myanmar", emoji: "📖", colors: ["#FFB4D8", "#EC4899"] as [string, string] },
-  { id: "english", nameKey: "subjects.english", emoji: "🔤", colors: ["#8FA0FF", "#4055DC"] as [string, string] },
-  { id: "math", nameKey: "subjects.math", emoji: "🔢", colors: ["#A0E7E5", "#4ECDC4"] as [string, string] },
-  { id: "science", nameKey: "subjects.science", emoji: "🔬", colors: ["#C8A2FF", "#8B5CF6"] as [string, string] },
-  { id: "history", nameKey: "subjects.history", emoji: "🏛️", colors: ["#FFE066", "#F4C430"] as [string, string] },
-  { id: "geography", nameKey: "subjects.geography", emoji: "🌍", colors: ["#B5E8A0", "#6BBF3E"] as [string, string] },
+  { id: "myanmar", nameKey: "subjects.myanmar", emoji: "📖", color: CANDY.pink },
+  { id: "english", nameKey: "subjects.english", emoji: "🔤", color: CANDY.primary },
+  { id: "math", nameKey: "subjects.math", emoji: "🔢", color: CANDY.secondary },
+  { id: "science", nameKey: "subjects.science", emoji: "🔬", color: CANDY.mint },
+  { id: "history", nameKey: "subjects.history", emoji: "🏛️", color: CANDY.yellow },
+  { id: "geography", nameKey: "subjects.geography", emoji: "🌍", color: "#9FE870" },
 ];
 
 const GRADE_LABELS: Record<string, string> = {
-  kg: "KG",
-  g1: "Grade 1",
-  g2: "Grade 2",
-  g3: "Grade 3",
-  g4: "Grade 4",
-  g5: "Grade 5",
-  g6: "Grade 6",
+  kg: "KG", g1: "Grade 1", g2: "Grade 2", g3: "Grade 3",
+  g4: "Grade 4", g5: "Grade 5", g6: "Grade 6",
 };
 
-function SubjectCard({
-  item,
-  index,
-  onPress,
-}: {
-  item: (typeof SUBJECTS)[number];
-  index: number;
-  onPress: () => void;
-}) {
+function SubjectCard({ item, index, onPress }: any) {
   const { t } = useTranslation();
   const scale = useSharedValue(1);
-  const anim = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  const translateY = useSharedValue(0);
+  const anim = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }, { translateY: translateY.value }],
+  }));
 
   return (
     <Animated.View entering={FadeInDown.delay(index * 70).springify()} style={{ flex: 1 }}>
       <Pressable
-        onPressIn={() => (scale.value = withSpring(0.93, { damping: 15, stiffness: 400 }))}
-        onPressOut={() => (scale.value = withSpring(1, { damping: 12, stiffness: 300 }))}
+        onPressIn={() => {
+          scale.value = withSpring(0.95, { damping: 15, stiffness: 400 });
+          translateY.value = withSpring(3, { damping: 15, stiffness: 400 });
+        }}
+        onPressOut={() => {
+          scale.value = withSpring(1, { damping: 12, stiffness: 300 });
+          translateY.value = withSpring(0, { damping: 12, stiffness: 300 });
+        }}
         onPress={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
           onPress();
         }}
       >
-        <Animated.View style={[anim]}>
+        <Animated.View style={anim}>
           <View
             style={{
-              borderRadius: 22,
-              overflow: "hidden",
-              shadowColor: item.colors[1],
+              backgroundColor: item.color,
+              borderRadius: R.lg,
+              padding: isTablet ? 22 : 18,
+              minHeight: isTablet ? 145 : 125,
+              justifyContent: "space-between",
+              shadowColor: item.color,
               shadowOffset: { width: 0, height: 8 },
-              shadowOpacity: 0.3,
+              shadowOpacity: 0.4,
               shadowRadius: 14,
               elevation: 8,
+              borderWidth: 3,
+              borderColor: "rgba(255,255,255,0.4)",
             }}
           >
-            <LinearGradient
-              colors={item.colors}
-              start={{ x: 0.1, y: 0.1 }}
-              end={{ x: 0.9, y: 1 }}
+            <View
               style={{
-                padding: isTablet ? 22 : 18,
-                minHeight: isTablet ? 150 : 130,
-                justifyContent: "space-between",
+                position: "absolute",
+                top: 10,
+                right: 10,
+                width: 32,
+                height: 32,
+                borderRadius: 16,
+                backgroundColor: "rgba(255,255,255,0.35)",
+              }}
+            />
+            <Text style={{ fontSize: isTablet ? 40 : 32 }}>{item.emoji}</Text>
+            <Text
+              style={{
+                fontFamily: FONT.extrabold,
+                fontSize: isTablet ? 18 : 15,
+                color: CANDY.text,
+                letterSpacing: -0.2,
               }}
             >
-              <View
-                style={{
-                  position: "absolute",
-                  top: 10,
-                  right: 10,
-                  width: 34,
-                  height: 34,
-                  borderRadius: 17,
-                  backgroundColor: "rgba(255,255,255,0.3)",
-                }}
-              />
-              <Text style={{ fontSize: isTablet ? 40 : 32 }}>{item.emoji}</Text>
-              <Text
-                style={{
-                  fontFamily: "PlusJakartaSans_800ExtraBold",
-                  fontSize: isTablet ? 20 : 17,
-                  color: "#252536",
-                  letterSpacing: -0.3,
-                }}
-              >
-                {t(item.nameKey)}
-              </Text>
-            </LinearGradient>
+              {t(item.nameKey)}
+            </Text>
           </View>
         </Animated.View>
       </Pressable>
@@ -113,16 +103,12 @@ function SubjectCard({
 export default function SubjectSelection() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { C } = useTheme();
   const { level } = useLocalSearchParams<{ level: string }>();
   const numCols = isTablet ? 3 : 2;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
-      <ScrollView
-        contentContainerStyle={{ flexGrow: 1, paddingBottom: 32 }}
-        showsVerticalScrollIndicator={false}
-      >
+    <SafeAreaView style={{ flex: 1, backgroundColor: CANDY.bg }}>
+      <CandyPage>
         <View
           style={{
             paddingHorizontal: isTablet ? 48 : 24,
@@ -131,46 +117,27 @@ export default function SubjectSelection() {
             width: "100%",
           }}
         >
-          {/* Top bar */}
           <View style={{ marginTop: 16, flexDirection: "row", alignItems: "center", gap: 12 }}>
-            <Pressable
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                router.back();
-              }}
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: 22,
-                backgroundColor: C.card,
-                alignItems: "center",
-                justifyContent: "center",
-                borderWidth: 1,
-                borderColor: C.border,
-              }}
-            >
-              <Text style={{ fontSize: 20, color: C.ink }}>←</Text>
-            </Pressable>
+            <CandyIconButton emoji="←" onPress={() => router.back()} size={44} />
             <Text
               style={{
-                fontFamily: "PlusJakartaSans_700Bold",
+                fontFamily: FONT.bold,
                 fontSize: 12,
                 letterSpacing: 2,
-                color: C.muted,
+                color: CANDY.textMuted,
               }}
             >
               {GRADE_LABELS[level ?? "kg"] ?? "Grade"}
             </Text>
           </View>
 
-          {/* Headline */}
-          <View style={{ marginTop: 24, marginBottom: 24 }}>
+          <Animated.View entering={FadeInDown.delay(100).springify()} style={{ marginTop: 24, marginBottom: 24 }}>
             <Text
               style={{
-                fontFamily: "PlusJakartaSans_800ExtraBold",
+                fontFamily: FONT.extrabold,
                 fontSize: isTablet ? 42 : 30,
                 lineHeight: isTablet ? 48 : 38,
-                color: C.ink,
+                color: CANDY.text,
                 letterSpacing: -1,
               }}
             >
@@ -178,17 +145,16 @@ export default function SubjectSelection() {
             </Text>
             <Text
               style={{
-                fontFamily: "PlusJakartaSans_600SemiBold",
+                fontFamily: FONT.semibold,
                 fontSize: 14,
-                color: C.muted,
+                color: CANDY.textMuted,
                 marginTop: 8,
               }}
             >
               {t("subjects.subtitle")}
             </Text>
-          </View>
+          </Animated.View>
 
-          {/* Subject grid */}
           <View style={{ gap: 14 }}>
             {Array.from({ length: Math.ceil(SUBJECTS.length / numCols) }).map((_, ri) => {
               const row = SUBJECTS.slice(ri * numCols, ri * numCols + numCols);
@@ -213,7 +179,7 @@ export default function SubjectSelection() {
             })}
           </View>
         </View>
-      </ScrollView>
+      </CandyPage>
     </SafeAreaView>
   );
 }

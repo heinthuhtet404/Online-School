@@ -1,33 +1,24 @@
-import { createContext, useContext, useState, ReactNode, useEffect } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { createContext, useContext, useState, ReactNode } from "react";
+import { CANDY } from "./design";
 
 export type ThemeMode = "light" | "dark";
 
-export const LIGHT = {
-  bg: "#F8F7F2",
-  card: "#FFFFFF",
-  ink: "#252536",
-  muted: "#8B8B9E",
-  primary: "#4055DC",
-  secondary: "#D2F078",
-  accent: "#FF8066",
-  border: "#E5E2D8",
-  inputBg: "#FFFFFF",
-  softBg: "#ECE9DE",
+// Candy palette ကို light mode အဖြစ် သတ်မှတ်
+const LIGHT = {
+  bg: CANDY.bg,
+  card: CANDY.surface,
+  ink: CANDY.text,
+  muted: CANDY.textMuted,
+  primary: CANDY.primary,
+  secondary: CANDY.mint,
+  accent: CANDY.pink,
+  border: CANDY.border,
+  inputBg: CANDY.surface,
+  softBg: CANDY.primarySoft,
 };
 
-export const DARK = {
-  bg: "#14141B",
-  card: "#1F1F2A",
-  ink: "#F0F0F5",
-  muted: "#8B8B9E",
-  primary: "#6B7CFF",
-  secondary: "#D2F078",
-  accent: "#FF8066",
-  border: "#2A2A38",
-  inputBg: "#1F1F2A",
-  softBg: "#252532",
-};
+// Dark mode ကို ယာယီ light အတိုင်း ထားပါ (နောက်မှ ပြင်မယ်)
+const DARK = LIGHT;
 
 type ThemeCtx = {
   mode: ThemeMode;
@@ -43,20 +34,9 @@ const Ctx = createContext<ThemeCtx>({
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [mode, setModeState] = useState<ThemeMode>("light");
-
-  useEffect(() => {
-    AsyncStorage.getItem("theme").then((v) => {
-      if (v === "dark" || v === "light") setModeState(v);
-    });
-  }, []);
-
-  const setMode = (m: ThemeMode) => {
-    setModeState(m);
-    AsyncStorage.setItem("theme", m);
-  };
-
+  const setMode = (m: ThemeMode) => setModeState(m);
   return (
-    <Ctx.Provider value={{ mode, setMode, C: mode === "dark" ? DARK : LIGHT }}>
+    <Ctx.Provider value={{ mode, setMode, C: LIGHT }}>
       {children}
     </Ctx.Provider>
   );

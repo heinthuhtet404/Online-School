@@ -1,7 +1,9 @@
-import { View, Text, Pressable, ScrollView, Dimensions } from "react-native";
+import { View, Text, Dimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
+import { useLang } from "@/lib/language-context";
+import { useMode } from "@/lib/mode-context";
 import * as Haptics from "expo-haptics";
 import Animated, {
   useSharedValue,
@@ -9,127 +11,86 @@ import Animated, {
   withRepeat,
   withTiming,
   withDelay,
-  withSpring,
   Easing,
+  FadeInDown,
 } from "react-native-reanimated";
 import { useEffect } from "react";
-import { useTranslation } from "react-i18next";
-import { useLang } from "../lib/language-context";
+import { CANDY, FONT, R, SHADOW } from "@/lib/design";
+import CandyButton from "@/components/ui/CandyButton";
+import CandyCard from "@/components/ui/CandyCard";
 
+const { setMode } = useMode();
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
 
-// ===== Design System =====
-const C = {
-  bg: "#F8F7F2",
-  primary: "#4055DC",
-  secondary: "#D2F078",
-  accent: "#FF8066",
-  ink: "#252536",
-  muted: "#8B8B9E",
-  card: "#FFFFFF",
-};
-
-// ===== Floating animation =====
-function useFloat(delay = 0, amount = -12) {
+function Float({
+  children,
+  delay = 0,
+  amount = -10,
+  style,
+}: {
+  children: React.ReactNode;
+  delay?: number;
+  amount?: number;
+  style?: any;
+}) {
   const o = useSharedValue(0);
   useEffect(() => {
     o.value = withDelay(
       delay,
       withRepeat(
-        withTiming(1, { duration: 2800, easing: Easing.inOut(Easing.ease) }),
+        withTiming(1, { duration: 3000, easing: Easing.inOut(Easing.ease) }),
         -1,
         true
       )
     );
   }, []);
-  return useAnimatedStyle(() => ({ transform: [{ translateY: o.value * amount }] }));
+  const anim = useAnimatedStyle(() => ({ transform: [{ translateY: o.value * amount }] }));
+  return <Animated.View style={[style, anim]}>{children}</Animated.View>;
 }
 
-// ===== Abstract 3D Shape =====
-function Shape3D({
+// 3D Clay Style Blob
+function ClayBlob({
   size,
-  colors,
+  color,
   style,
-  delay = 0,
-  radius = 999,
 }: {
   size: number;
-  colors: [string, string];
-  style: any;
-  delay?: number;
-  radius?: number;
+  color: string;
+  style?: any;
 }) {
-  const anim = useFloat(delay, -10);
   return (
-    <Animated.View style={[style, anim, { pointerEvents: "none" }]}>
-      <View
-        style={{
+    <View
+      style={[
+        {
           width: size,
           height: size,
-          borderRadius: radius,
-          shadowColor: colors[1],
+          borderRadius: size / 2,
+          backgroundColor: color,
+          shadowColor: color,
           shadowOffset: { width: 0, height: size * 0.18 },
-          shadowOpacity: 0.55,
-          shadowRadius: size * 0.25,
-          elevation: 14,
+          shadowOpacity: 0.6,
+          shadowRadius: size * 0.35,
+          elevation: 12,
+          // Top highlight (3D clay effect)
+          borderWidth: size * 0.04,
+          borderColor: "rgba(255,255,255,0.5)",
+        },
+        style,
+      ]}
+    >
+      <View
+        style={{
+          position: "absolute",
+          top: size * 0.1,
+          left: size * 0.12,
+          width: size * 0.25,
+          height: size * 0.25,
+          borderRadius: size * 0.125,
+          backgroundColor: "rgba(255,255,255,0.7)",
         }}
-      >
-        <LinearGradient
-          colors={colors}
-          start={{ x: 0.15, y: 0.1 }}
-          end={{ x: 0.9, y: 1 }}
-          style={{ width: "100%", height: "100%", borderRadius: radius }}
-        >
-          <View
-            style={{
-              position: "absolute",
-              top: size * 0.12,
-              left: size * 0.15,
-              width: size * 0.3,
-              height: size * 0.3,
-              borderRadius: size * 0.15,
-              backgroundColor: "rgba(255,255,255,0.55)",
-            }}
-          />
-        </LinearGradient>
-      </View>
-    </Animated.View>
-  );
-}
-
-// ===== Tactile Pressable Button =====
-function TactileButton({
-  onPress,
-  children,
-  style,
-  haptic = "medium",
-}: {
-  onPress: () => void;
-  children: React.ReactNode;
-  style?: any;
-  haptic?: "light" | "medium" | "heavy";
-}) {
-  const scale = useSharedValue(1);
-  const anim = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-
-  const handlePressIn = () => {
-    scale.value = withSpring(0.94, { damping: 15, stiffness: 400 });
-  };
-  const handlePressOut = () => {
-    scale.value = withSpring(1, { damping: 12, stiffness: 300 });
-  };
-  const handlePress = () => {
-    if (haptic === "light") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    else if (haptic === "heavy") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-    else Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    onPress();
-  };
-
-  return (
-    <Pressable onPressIn={handlePressIn} onPressOut={handlePressOut} onPress={handlePress}>
-      <Animated.View style={[style, anim]}>{children}</Animated.View>
-    </Pressable>
+      />
+    </View>
   );
 }
 
@@ -139,333 +100,238 @@ export default function Welcome() {
   const { lang, setLang } = useLang();
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
-      <ScrollView
-        contentContainerStyle={{ flexGrow: 1 }}
-        showsVerticalScrollIndicator={false}
+    <SafeAreaView style={{ flex: 1, backgroundColor: CANDY.bg }}>
+      <View
+        style={{
+          flex: 1,
+          paddingHorizontal: isTablet ? 48 : 24,
+          maxWidth: isTablet ? 720 : undefined,
+          alignSelf: "center",
+          width: "100%",
+          paddingTop: 16,
+        }}
       >
+        {/* Top bar: Logo + Language */}
         <View
           style={{
-            flex: 1,
-            paddingHorizontal: isTablet ? 48 : 28,
-            paddingBottom: 24,
-            maxWidth: isTablet ? 720 : undefined,
-            alignSelf: "center",
-            width: "100%",
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 32,
           }}
         >
-          {/* ===== Top bar: Language switcher ===== */}
-          <View
-            style={{
-              marginTop: 16,
-              flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-              <View
-                style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: C.secondary }}
-              />
-              <Text
-                style={{
-                  fontFamily: "PlusJakartaSans_700Bold",
-                  fontSize: 12,
-                  letterSpacing: 2,
-                  color: C.ink,
-                }}
-              >
-                ONLINE SCHOOL
-              </Text>
-            </View>
-
-            {/* Language switcher pill */}
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
             <View
               style={{
-                flexDirection: "row",
-                backgroundColor: C.card,
-                borderRadius: 20,
-                padding: 4,
-                borderWidth: 1,
-                borderColor: "#E5E2D8",
+                width: 36,
+                height: 36,
+                borderRadius: 18,
+                backgroundColor: CANDY.pink,
+                alignItems: "center",
+                justifyContent: "center",
+                shadowColor: CANDY.pink,
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.4,
+                shadowRadius: 8,
+                elevation: 4,
               }}
             >
-              {(["my", "en"] as const).map((l) => (
-                <Pressable
-                  key={l}
-                  onPress={() => {
-                    Haptics.selectionAsync();
-                    setLang(l);
-                  }}
+              <Text style={{ fontSize: 20 }}>🍭</Text>
+            </View>
+            <Text
+              style={{
+                fontFamily: FONT.extrabold,
+                fontSize: 14,
+                color: CANDY.text,
+                letterSpacing: 1,
+              }}
+            >
+              ONLINE SCHOOL
+            </Text>
+          </View>
+
+          {/* Language pill */}
+          <View
+            style={{
+              flexDirection: "row",
+              backgroundColor: CANDY.surface,
+              borderRadius: R.pill,
+              padding: 4,
+              ...SHADOW.soft,
+            }}
+          >
+            {(["my", "en"] as const).map((l) => (
+              <View
+                key={l}
+                onTouchEnd={() => {
+                  Haptics.selectionAsync();
+                  setLang(l);
+                }}
+                style={{
+                  paddingHorizontal: 14,
+                  paddingVertical: 6,
+                  borderRadius: R.pill,
+                  backgroundColor: lang === l ? CANDY.primary : "transparent",
+                }}
+              >
+                <Text
                   style={{
-                    paddingHorizontal: 14,
-                    paddingVertical: 6,
-                    borderRadius: 16,
-                    backgroundColor: lang === l ? C.ink : "transparent",
+                    fontFamily: FONT.extrabold,
+                    fontSize: 12,
+                    color: lang === l ? "#FFF" : CANDY.textMuted,
                   }}
                 >
-                  <Text
-                    style={{
-                      fontFamily: "PlusJakartaSans_700Bold",
-                      fontSize: 12,
-                      color: lang === l ? "#FFF" : C.muted,
-                    }}
-                  >
-                    {l.toUpperCase()}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
+                  {l.toUpperCase()}
+                </Text>
+              </View>
+            ))}
           </View>
+        </View>
 
-          {/* ===== Hero headline ===== */}
-          <View style={{ marginTop: isTablet ? 32 : 28 }}>
-            <Text
-              style={{
-                fontFamily: "PlusJakartaSans_800ExtraBold",
-                fontSize: isTablet ? 64 : 48,
-                lineHeight: isTablet ? 70 : 54,
-                color: C.ink,
-                letterSpacing: -1.5,
-              }}
-            >
-              {t("welcome.hello")}
-            </Text>
-            <Text
-              style={{
-                fontFamily: "PlusJakartaSans_800ExtraBold",
-                fontSize: isTablet ? 64 : 48,
-                lineHeight: isTablet ? 70 : 54,
-                color: C.ink,
-                letterSpacing: -1.5,
-              }}
-            >
-              {t("welcome.little")}
-            </Text>
-            <Text
-              style={{
-                fontFamily: "PlusJakartaSans_800ExtraBold",
-                fontSize: isTablet ? 64 : 48,
-                lineHeight: isTablet ? 70 : 54,
-                color: C.primary,
-                letterSpacing: -1.5,
-              }}
-            >
-              {t("welcome.explorers")}
-            </Text>
-            <Text
-              style={{
-                fontFamily: "PlusJakartaSans_600SemiBold",
-                fontSize: 15,
-                color: C.muted,
-                marginTop: 12,
-                letterSpacing: 0.3,
-              }}
-            >
-              {t("welcome.tagline")}
-            </Text>
-          </View>
-
-          {/* ===== Abstract 3D shapes zone ===== */}
-          <View
+        {/* Hero headline */}
+        <Animated.View entering={FadeInDown.delay(100).springify()}>
+          <Text
             style={{
-              height: isTablet ? 240 : 200,
-              position: "relative",
-              marginTop: 8,
-              marginBottom: 20,
+              fontFamily: FONT.extrabold,
+              fontSize: isTablet ? 64 : 44,
+              lineHeight: isTablet ? 72 : 52,
+              color: CANDY.text,
+              letterSpacing: -1.5,
             }}
           >
-            <Shape3D
-              size={isTablet ? 140 : 110}
-              colors={["#8FA0FF", "#4055DC"]}
-              delay={0}
-              style={{ position: "absolute", top: 10, left: 0 }}
-            />
-            <Animated.View
-              style={[
-                useFloat(400, -10),
-                {
-                  position: "absolute",
-                  top: 40,
-                  right: 10,
-                  width: isTablet ? 100 : 80,
-                  height: isTablet ? 100 : 80,
-                  borderRadius: 28,
-                  transform: [{ rotate: "16deg" }],
-                  shadowColor: "#A8C43F",
-                  shadowOffset: { width: 0, height: 10 },
-                  shadowOpacity: 0.5,
-                  shadowRadius: 18,
-                  elevation: 12,
-                },
-              ]}
-            >
-              <LinearGradient
-                colors={["#E8FFA8", "#D2F078"]}
-                start={{ x: 0.2, y: 0.1 }}
-                end={{ x: 0.9, y: 1 }}
-                style={{ width: "100%", height: "100%", borderRadius: 28 }}
-              >
-                <View
-                  style={{
-                    position: "absolute",
-                    top: 12,
-                    left: 14,
-                    width: 24,
-                    height: 24,
-                    borderRadius: 12,
-                    backgroundColor: "rgba(255,255,255,0.6)",
-                  }}
-                />
-              </LinearGradient>
-            </Animated.View>
+            {t("welcome.hello")}
+          </Text>
+          <Text
+            style={{
+              fontFamily: FONT.extrabold,
+              fontSize: isTablet ? 64 : 44,
+              lineHeight: isTablet ? 72 : 52,
+              color: CANDY.primary,
+              letterSpacing: -1.5,
+            }}
+          >
+            {t("welcome.little")}
+          </Text>
+          <Text
+            style={{
+              fontFamily: FONT.extrabold,
+              fontSize: isTablet ? 64 : 44,
+              lineHeight: isTablet ? 72 : 52,
+              color: CANDY.pink,
+              letterSpacing: -1.5,
+            }}
+          >
+            {t("welcome.explorers")}
+          </Text>
+          <Text
+            style={{
+              fontFamily: FONT.semibold,
+              fontSize: 15,
+              color: CANDY.textMuted,
+              marginTop: 12,
+            }}
+          >
+            {t("welcome.tagline")}
+          </Text>
+        </Animated.View>
 
-            <Shape3D
-              size={isTablet ? 80 : 64}
-              colors={["#FFAE9C", "#FF8066"]}
-              delay={800}
-              style={{ position: "absolute", bottom: 10, right: 80 }}
-            />
-            <Shape3D
-              size={40}
-              colors={["#4A4A60", "#252536"]}
-              delay={1200}
-              style={{ position: "absolute", bottom: 0, left: 60 }}
+        {/* 3D Clay Illustration Zone */}
+        <View
+          style={{
+            height: isTablet ? 260 : 220,
+            position: "relative",
+            marginTop: 16,
+            marginBottom: 8,
+          }}
+        >
+          <Float delay={0} amount={-8} style={{ position: "absolute", top: 20, left: 20 }}>
+            <ClayBlob size={isTablet ? 130 : 100} color={CANDY.primary} />
+          </Float>
+          <Float delay={400} amount={-12} style={{ position: "absolute", top: 50, right: 20 }}>
+            <ClayBlob size={isTablet ? 90 : 70} color={CANDY.mint} />
+          </Float>
+          <Float delay={800} amount={-10} style={{ position: "absolute", bottom: 20, right: 60 }}>
+            <ClayBlob size={isTablet ? 70 : 56} color={CANDY.yellow} />
+          </Float>
+          <Float delay={1200} amount={-6} style={{ position: "absolute", bottom: 30, left: 70 }}>
+            <ClayBlob size={isTablet ? 56 : 44} color={CANDY.pink} />
+          </Float>
+          <Float delay={200} amount={-8} style={{ position: "absolute", top: 0, right: isTablet ? 200 : 140 }}>
+            <ClayBlob size={36} color={CANDY.secondary} />
+          </Float>
+        </View>
+
+        {/* CTA Buttons */}
+        <Animated.View entering={FadeInDown.delay(300).springify()}>
+          <CandyButton
+            label={t("welcome.playGuest")}
+            icon="🚀"
+            size="lg"
+            color={CANDY.primary}
+            onPress={() => router.push("/(student)/grades")}
+            haptic="heavy"
+            style={{ marginBottom: 14 }}
+          />
+          <CandyButton
+            label={t("welcome.login")}
+            color={CANDY.surface}
+            textColor={CANDY.primary}
+            onPress={() => router.push("/(auth)/login")}
+            style={{ marginBottom: 14 }}
+          />
+          {/* <View style={{ flexDirection: "row", gap: 12 }}>
+            <CandyButton
+              label={t("welcome.teacher")}
+              icon="👩‍🏫"
+              color={CANDY.mint}
+              textColor={CANDY.text}
+              onPress={() => router.push("/(teacher)/dashboard")}
+              style={{ flex: 1 }}
             />
             <View
               style={{
-                position: "absolute",
-                top: 6,
-                right: isTablet ? 200 : 130,
-                width: 14,
-                height: 14,
-                borderRadius: 7,
-                backgroundColor: C.secondary,
-              }}
-            />
-          </View>
-
-          {/* ===== Primary CTA: Play as Guest ===== */}
-          <TactileButton
-            haptic="heavy"
-            onPress={() => router.push("/(student)/grades")}
-            style={{
-              backgroundColor: C.ink,
-              borderRadius: 24,
-              paddingVertical: 22,
-              alignItems: "center",
-              flexDirection: "row",
-              justifyContent: "center",
-              gap: 10,
-              shadowColor: C.ink,
-              shadowOffset: { width: 0, height: 12 },
-              shadowOpacity: 0.28,
-              shadowRadius: 22,
-              elevation: 12,
-            }}
-          >
-            <Text style={{ fontSize: 22 }}>🚀</Text>
-            <Text
-              style={{
-                fontFamily: "PlusJakartaSans_800ExtraBold",
-                fontSize: 17,
-                color: "#FFFFFF",
-                letterSpacing: 0.4,
-              }}
-            >
-              {t("welcome.playGuest")}
-            </Text>
-          </TactileButton>
-
-          {/* ===== Log in / Sign in ===== */}
-          <TactileButton
-            haptic="light"
-            onPress={() => router.push("/(auth)/login")}
-            style={{
-              marginTop: 14,
-              backgroundColor: C.card,
-              borderRadius: 24,
-              paddingVertical: 20,
-              alignItems: "center",
-              borderWidth: 2,
-              borderColor: C.primary,
-            }}
-          >
-            <Text
-              style={{
-                fontFamily: "PlusJakartaSans_800ExtraBold",
-                fontSize: 16,
-                color: C.primary,
-              }}
-            >
-              {t("welcome.login")}
-            </Text>
-          </TactileButton>
-
-          {/* ===== Utility row: Teacher | Help ===== */}
-          <View style={{ flexDirection: "row", gap: 12, marginTop: 14 }}>
-            <TactileButton
-              haptic="light"
-              onPress={() => router.push("/(teacher)/dashboard")}
-              style={{
-                flex: 1,
-                backgroundColor: C.secondary,
-                borderRadius: 20,
-                paddingVertical: 16,
-                alignItems: "center",
-                flexDirection: "row",
-                justifyContent: "center",
-                gap: 8,
-              }}
-            >
-              <Text style={{ fontSize: 18 }}>👩‍🏫</Text>
-              <Text
-                style={{
-                  fontFamily: "PlusJakartaSans_800ExtraBold",
-                  fontSize: 14,
-                  color: C.ink,
-                }}
-              >
-                {t("welcome.teacher")}
-              </Text>
-            </TactileButton>
-
-            <TactileButton
-              haptic="light"
-              onPress={() => {}}
-              style={{
-                width: 60,
-                backgroundColor: C.card,
-                borderRadius: 20,
-                paddingVertical: 16,
+                width: 52,
+                height: 52,
+                borderRadius: R.lg,
+                backgroundColor: CANDY.surface,
                 alignItems: "center",
                 justifyContent: "center",
-                borderWidth: 1,
-                borderColor: "#E5E2D8",
+                ...SHADOW.soft,
               }}
             >
-              <Text style={{ fontSize: 20 }}>❓</Text>
-            </TactileButton>
-          </View>
+              <Text style={{ fontSize: 22 }}>❓</Text>
+            </View>
+          </View> */}
 
-          {/* ===== Spacer ===== */}
-          <View style={{ flex: 1, minHeight: 24 }} />
+          // Teacher Access button
+<CandyButton
+  label={t("welcome.teacher")}
+  icon="👩‍🏫"
+  color={CANDY.mint}
+  textColor={CANDY.text}
+  onPress={() => {
+    setMode("teacher");
+    router.push("/(teacher)/dashboard");
+  }}
+  style={{ flex: 1 }}
+/>
+        </Animated.View>
 
-          {/* ===== Footer ===== */}
-          <View style={{ alignItems: "center", marginTop: 20, paddingBottom: 8 }}>
-            <Text
-              style={{
-                fontFamily: "PlusJakartaSans_600SemiBold",
-                fontSize: 11,
-                color: C.muted,
-                letterSpacing: 0.5,
-              }}
-            >
-              {t("welcome.help")}  ·  v1.0.0
-            </Text>
-          </View>
-        </View>
-      </ScrollView>
+        <View style={{ flex: 1, minHeight: 20 }} />
+
+        <Text
+          style={{
+            textAlign: "center",
+            fontFamily: FONT.semibold,
+            fontSize: 11,
+            color: CANDY.textMuted,
+            marginTop: 20,
+            marginBottom: 8,
+          }}
+        >
+          {t("welcome.help")}  ·  v1.0.0
+        </Text>
+      </View>
     </SafeAreaView>
   );
 }

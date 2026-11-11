@@ -1,16 +1,23 @@
 import { Tabs } from "expo-router";
-import { Text } from "react-native";
+import { Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
-
-const C = {
-  bg: "#F8F7F2",
-  primary: "#4055DC",
-  ink: "#252536",
-  muted: "#8B8B9E",
-};
+import { CANDY, FONT, R, SHADOW } from "@/lib/design";
 
 function Icon({ emoji, focused }: { emoji: string; focused: boolean }) {
-  return <Text style={{ fontSize: 22, opacity: focused ? 1 : 0.5 }}>{emoji}</Text>;
+  return (
+    <View
+      style={{
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: focused ? CANDY.primarySoft : "transparent",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <Text style={{ fontSize: 20, opacity: focused ? 1 : 0.6 }}>{emoji}</Text>
+    </View>
+  );
 }
 
 export default function TabsLayout() {
@@ -19,25 +26,32 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: C.primary,
-        tabBarInactiveTintColor: C.muted,
+        tabBarActiveTintColor: CANDY.primary,
+        tabBarInactiveTintColor: CANDY.textMuted,
         tabBarStyle: {
-          backgroundColor: "#FFF",
+          backgroundColor: CANDY.surface,
           borderTopWidth: 0,
-          height: 68,
-          paddingBottom: 10,
+          height: 76,
+          paddingBottom: 14,
           paddingTop: 8,
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: -4 },
-          shadowOpacity: 0.06,
-          shadowRadius: 12,
-          elevation: 10,
+          marginHorizontal: 16,
+          marginBottom: 12,
+          borderRadius: R.xl,
+          position: "absolute",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          ...SHADOW.card,
         },
         tabBarLabelStyle: {
-          fontFamily: "PlusJakartaSans_700Bold",
-          fontSize: 11,
+          fontFamily: FONT.bold,
+          fontSize: 10,
+          marginTop: 2,
         },
-        sceneStyle: { backgroundColor: C.bg },
+        tabBarItemStyle: {
+          paddingVertical: 2,
+        },
+        sceneStyle: { backgroundColor: CANDY.bg },
       }}
     >
       <Tabs.Screen

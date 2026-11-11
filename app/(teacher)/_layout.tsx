@@ -1,4 +1,14 @@
 import { Stack } from "expo-router";
+import { CANDY } from "@/lib/design";
+
 export default function TeacherLayout() {
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        animation: "slide_from_right",
+        contentStyle: { backgroundColor: CANDY.bg },
+      }}
+    />
+  );
 }

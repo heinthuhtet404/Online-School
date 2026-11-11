@@ -1,177 +1,139 @@
-import { View, Text, ScrollView, Switch, Pressable } from "react-native";
+import { View, Text, Switch, Dimensions, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
-import { useLang } from "../../../lib/language-context";
-import { useTheme } from "../../../lib/theme-context";
-import * as Haptics from "expo-haptics";
-import { useState } from "react";
+import { useLang } from "@/lib/language-context";
 import { useRouter } from "expo-router";
+import { useState } from "react";
+import * as Haptics from "expo-haptics";
+import { CANDY, FONT, R } from "@/lib/design";
+import CandyPage from "@/components/ui/CandyPage";
+import CandyCard from "@/components/ui/CandyCard";
+import CandyButton from "@/components/ui/CandyButton";
 
-function Row({
-  label,
-  children,
-  C,
-}: {
-  label: string;
-  children: React.ReactNode;
-  C: any;
-}) {
-  return (
-    <View
-      style={{
-        backgroundColor: C.card,
-        borderRadius: 18,
-        padding: 16,
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        marginBottom: 10,
-        borderWidth: 1,
-        borderColor: C.border,
-      }}
-    >
-      <Text style={{ fontFamily: "PlusJakartaSans_700Bold", fontSize: 14, color: C.ink }}>
-        {label}
-      </Text>
-      {children}
-    </View>
-  );
-}
+const { width } = Dimensions.get("window");
+const isTablet = width >= 768;
 
 export default function Settings() {
   const { t } = useTranslation();
   const { lang, setLang } = useLang();
-  const { mode, setMode, C } = useTheme();
   const router = useRouter();
   const [notif, setNotif] = useState(true);
   const [sound, setSound] = useState(true);
   const [haptics, setHaptics] = useState(true);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
-      <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: 32 }}>
-        <Text
+    <SafeAreaView style={{ flex: 1, backgroundColor: CANDY.bg }}>
+      <CandyPage>
+        <View
           style={{
-            marginTop: 4,
-            fontFamily: "PlusJakartaSans_800ExtraBold",
-            fontSize: 30,
-            color: C.ink,
-            letterSpacing: -1,
-            marginBottom: 20,
+            paddingHorizontal: isTablet ? 48 : 24,
+            maxWidth: isTablet ? 900 : undefined,
+            alignSelf: "center",
+            width: "100%",
+            paddingBottom: 100,
           }}
         >
-          ⚙️ {t("settings.title")}
-        </Text>
+          <Text
+            style={{
+              marginTop: 20,
+              fontFamily: FONT.extrabold,
+              fontSize: isTablet ? 40 : 30,
+              color: CANDY.text,
+              letterSpacing: -1,
+              marginBottom: 20,
+            }}
+          >
+            ⚙️ {t("settings.title")}
+          </Text>
 
-        {/* Language */}
-        <Row label={t("settings.language")} C={C}>
-          <View style={{ flexDirection: "row", backgroundColor: C.softBg, borderRadius: 12, padding: 3 }}>
-            {(["my", "en"] as const).map((l) => (
-              <Pressable
-                key={l}
-                onPress={() => {
-                  Haptics.selectionAsync();
-                  setLang(l);
-                }}
+          {/* Language */}
+          <CandyCard style={{ marginBottom: 12 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+              <Text style={{ fontFamily: FONT.bold, fontSize: 14, color: CANDY.text }}>
+                {t("settings.language")}
+              </Text>
+              <View
                 style={{
-                  paddingHorizontal: 14,
-                  paddingVertical: 6,
-                  borderRadius: 9,
-                  backgroundColor: lang === l ? C.ink : "transparent",
+                  flexDirection: "row",
+                  backgroundColor: CANDY.primarySoft,
+                  borderRadius: R.md,
+                  padding: 3,
                 }}
               >
-                <Text
-                  style={{
-                    fontFamily: "PlusJakartaSans_800ExtraBold",
-                    fontSize: 12,
-                    color: lang === l ? C.bg : C.muted,
-                  }}
-                >
-                  {l.toUpperCase()}
+                {(["my", "en"] as const).map((l) => (
+                  <Pressable
+                    key={l}
+                    onPress={() => {
+                      Haptics.selectionAsync();
+                      setLang(l);
+                    }}
+                    style={{
+                      paddingHorizontal: 14,
+                      paddingVertical: 6,
+                      borderRadius: R.sm,
+                      backgroundColor: lang === l ? CANDY.primary : "transparent",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontFamily: FONT.extrabold,
+                        fontSize: 12,
+                        color: lang === l ? "#FFF" : CANDY.textMuted,
+                      }}
+                    >
+                      {l.toUpperCase()}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+          </CandyCard>
+
+          {/* Toggles */}
+          {[
+            { label: t("settings.notifications"), value: notif, set: setNotif },
+            { label: t("settings.sound"), value: sound, set: setSound },
+            { label: t("settings.haptics"), value: haptics, set: setHaptics },
+          ].map((row, i) => (
+            <CandyCard key={i} style={{ marginBottom: 12 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                <Text style={{ fontFamily: FONT.bold, fontSize: 14, color: CANDY.text }}>
+                  {row.label}
                 </Text>
-              </Pressable>
-            ))}
-          </View>
-        </Row>
+                <Switch
+                  value={row.value}
+                  onValueChange={(v) => {
+                    Haptics.selectionAsync();
+                    row.set(v);
+                  }}
+                  trackColor={{ true: CANDY.primary, false: "#DDD" }}
+                  thumbColor="#FFF"
+                />
+              </View>
+            </CandyCard>
+          ))}
 
-        {/* Dark Mode */}
-        <Row label="Dark Mode" C={C}>
-          <Switch
-            value={mode === "dark"}
-            onValueChange={(v) => {
-              Haptics.selectionAsync();
-              setMode(v ? "dark" : "light");
-            }}
-            trackColor={{ true: C.primary, false: "#DDD" }}
+          <CandyButton
+            label={t("settings.logout")}
+            icon="🚪"
+            color={CANDY.pink}
+            onPress={() => router.replace("/")}
+            style={{ marginTop: 20 }}
           />
-        </Row>
 
-        {/* Toggles */}
-        <Row label={t("settings.notifications")} C={C}>
-          <Switch
-            value={notif}
-            onValueChange={(v) => {
-              Haptics.selectionAsync();
-              setNotif(v);
+          <Text
+            style={{
+              textAlign: "center",
+              marginTop: 20,
+              fontFamily: FONT.semibold,
+              fontSize: 11,
+              color: CANDY.textMuted,
             }}
-            trackColor={{ true: C.primary, false: "#DDD" }}
-          />
-        </Row>
-        <Row label={t("settings.sound")} C={C}>
-          <Switch
-            value={sound}
-            onValueChange={(v) => {
-              Haptics.selectionAsync();
-              setSound(v);
-            }}
-            trackColor={{ true: C.primary, false: "#DDD" }}
-          />
-        </Row>
-        <Row label={t("settings.haptics")} C={C}>
-          <Switch
-            value={haptics}
-            onValueChange={(v) => {
-              Haptics.selectionAsync();
-              setHaptics(v);
-            }}
-            trackColor={{ true: C.primary, false: "#DDD" }}
-          />
-        </Row>
-
-        {/* Logout */}
-        <Pressable
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            router.replace("/");
-          }}
-          style={({ pressed }) => ({
-            marginTop: 20,
-            backgroundColor: C.card,
-            borderRadius: 18,
-            paddingVertical: 18,
-            alignItems: "center",
-            borderWidth: 2,
-            borderColor: "#FFB4A2",
-            opacity: pressed ? 0.85 : 1,
-          })}
-        >
-          <Text style={{ fontFamily: "PlusJakartaSans_800ExtraBold", color: "#E8553B", fontSize: 14 }}>
-            {t("settings.logout")}
+          >
+            {t("settings.version")} · 1.0.0
           </Text>
-        </Pressable>
-
-        <Text
-          style={{
-            textAlign: "center",
-            marginTop: 20,
-            fontFamily: "PlusJakartaSans_600SemiBold",
-            fontSize: 11,
-            color: C.muted,
-          }}
-        >
-          {t("settings.version")} · 1.0.0
-        </Text>
-      </ScrollView>
+        </View>
+      </CandyPage>
     </SafeAreaView>
   );
 }

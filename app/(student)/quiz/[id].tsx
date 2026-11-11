@@ -12,7 +12,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { useTheme } from "../../../lib/theme-context";
+import { useTheme } from "@/lib/theme-context";
 
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768;

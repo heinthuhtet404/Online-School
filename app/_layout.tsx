@@ -1,7 +1,8 @@
 import "../lib/i18n";
 import { Slot } from "expo-router";
-import { ThemeProvider } from "../lib/theme-context";
-import { LanguageProvider } from "../lib/language-context";
+import { ModeProvider } from "@/lib/mode-context";
+import { ThemeProvider } from "@/lib/theme-context";
+import { LanguageProvider } from "@/lib/language-context";
 import {
   useFonts,
   PlusJakartaSans_400Regular,
@@ -45,7 +46,9 @@ export default function RootLayout() {
   return (
   <LanguageProvider>
     <ThemeProvider>
-      <Slot />
+      <ModeProvider>
+        <Slot />
+      </ModeProvider>
     </ThemeProvider>
   </LanguageProvider>
 );
