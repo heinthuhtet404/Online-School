@@ -1,308 +1,110 @@
-import { View, Text, Dimensions, Pressable, ScrollView, Alert } from "react-native";
+import { View, Text, ScrollView, Dimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
-import { useTranslation } from "react-i18next";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { WebView } from "react-native-webview";
 import * as Haptics from "expo-haptics";
-import Animated, { FadeInDown } from "react-native-reanimated";
-import { useState, useCallback } from "react";
-import { CANDY, FONT, R, SHADOW } from "@/lib/design";
-import CandyCard from "@/components/ui/CandyCard";
-import CandyButton from "@/components/ui/CandyButton";
+import { CANDY, FONT, R } from "@/lib/design";
 import CandyIconButton from "@/components/ui/CandyIconButton";
-import { LessonsStore, Lesson } from "@/lib/lessons-store";
+import CandyButton from "@/components/ui/CandyButton";
+import CandyCard from "@/components/ui/CandyCard";
 
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
 
-const SUBJECT_META: Record<string, { nameKey: string; emoji: string; color: string }> = {
-  myanmar: { nameKey: "subjects.myanmar", emoji: "📖", color: CANDY.pink },
-  english: { nameKey: "subjects.english", emoji: "🔤", color: CANDY.primary },
-  math: { nameKey: "subjects.math", emoji: "🔢", color: CANDY.secondary },
-  science: { nameKey: "subjects.science", emoji: "🔬", color: CANDY.mint },
-  history: { nameKey: "subjects.history", emoji: "🏛️", color: CANDY.yellow },
-  geography: { nameKey: "subjects.geography", emoji: "🌍", color: "#9FE870" },
-};
-
-export default function SubjectLessons() {
+export default function StudentLessonDetail() {
   const router = useRouter();
-  const { t } = useTranslation();
-  const { subject } = useLocalSearchParams<{ subject: string }>();
-  const meta = SUBJECT_META[subject ?? "math"] ?? SUBJECT_META.math;
-  const [lessons, setLessons] = useState<Lesson[]>([]);
+  const { level, subject, id } = useLocalSearchParams<{ level: string; subject: string; id: string }>();
 
-  useFocusEffect(
-    useCallback(() => {
-      if (subject) setLessons(LessonsStore.getBySubject(subject));
-    }, [subject])
-  );
+  const lessonNum = (id ?? "l1").replace("l", "");
+  const videoId = "DDhdFSIW-MA"; // နောက်ပိုင်း Database ကနေ ဆွဲယူမယ်
 
-  const handleDelete = (lesson: Lesson) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-    Alert.alert(
-      "သင်ခန်းစာ ဖျက်မလား?",
-      `"${lesson.title}" ကို ဖျက်တော့မယ်။ ပြန်မရနိုင်ပါ။`,
-      [
-        { text: "မဖျက်ဘူး", style: "cancel" },
-        {
-          text: "ဖျက်မယ်",
-          style: "destructive",
-          onPress: () => {
-            LessonsStore.delete(lesson.id);
-            if (subject) setLessons(LessonsStore.getBySubject(subject));
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          },
-        },
-      ]
-    );
-  };
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+        <style>
+          html, body { margin:0; padding:0; background:#000; height:100%; overflow:hidden; }
+          iframe { width:100%; height:100%; border:0; }
+        </style>
+      </head>
+      <body>
+        <iframe src="https://www.youtube-nocookie.com/embed/${videoId}?playsinline=1&rel=0&modestbranding=1"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowfullscreen></iframe>
+      </body>
+    </html>
+  `;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: CANDY.bg }}>
-      <ScrollView
-        contentContainerStyle={{
-          paddingHorizontal: isTablet ? 48 : 24,
-          paddingBottom: 40,
-          maxWidth: isTablet ? 900 : undefined,
-          alignSelf: "center",
-          width: "100%",
-        }}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Back */}
-        <View style={{ marginTop: 16 }}>
-          <CandyIconButton emoji="←" onPress={() => router.back()} size={44} />
+      <ScrollView contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+        <View style={{ width: "100%", aspectRatio: 16 / 9, backgroundColor: "#000", position: "relative" }}>
+          <WebView
+            originWhitelist={["*"]}
+            source={{ html, baseUrl: "https://www.youtube-nocookie.com" }}
+            style={{ flex: 1, backgroundColor: "#000" }}
+            allowsInlineMediaPlayback
+            mediaPlaybackRequiresUserAction={false}
+            javaScriptEnabled
+            domStorageEnabled
+            sharedCookiesEnabled
+            thirdPartyCookiesEnabled
+            mixedContentMode="always"
+          />
+          <View style={{ position: "absolute", top: 12, left: 12 }}>
+            <CandyIconButton
+              emoji="←"
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.back();
+              }}
+              size={44}
+              bg="rgba(255,255,255,0.9)"
+            />
+          </View>
         </View>
 
-        {/* Hero */}
-        <Animated.View entering={FadeInDown.delay(100).springify()} style={{ marginTop: 20 }}>
-          <View
-            style={{
-              backgroundColor: meta.color,
-              borderRadius: R.xl,
-              padding: 22,
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 16,
-              shadowColor: meta.color,
-              shadowOffset: { width: 0, height: 10 },
-              shadowOpacity: 0.4,
-              shadowRadius: 18,
-              elevation: 10,
-              borderWidth: 3,
-              borderColor: "rgba(255,255,255,0.4)",
-            }}
-          >
-            <Text style={{ fontSize: isTablet ? 60 : 48 }}>{meta.emoji}</Text>
-            <View style={{ flex: 1 }}>
-              <Text
-                style={{
-                  fontFamily: FONT.extrabold,
-                  fontSize: isTablet ? 30 : 22,
-                  color: CANDY.text,
-                  letterSpacing: -0.6,
-                }}
-              >
-                {t(meta.nameKey)}
-              </Text>
-              <Text
-                style={{
-                  fontFamily: FONT.semibold,
-                  fontSize: 13,
-                  color: CANDY.text,
-                  opacity: 0.7,
-                  marginTop: 2,
-                }}
-              >
-                {lessons.length} သင်ခန်းစာ
-              </Text>
-            </View>
-          </View>
-        </Animated.View>
+        <View style={{ paddingHorizontal: isTablet ? 48 : 24, maxWidth: isTablet ? 900 : undefined, alignSelf: "center", width: "100%" }}>
+          <Text style={{ marginTop: 20, fontFamily: FONT.extrabold, fontSize: isTablet ? 32 : 24, color: CANDY.text, letterSpacing: -0.5 }}>
+            သင်ခန်းစာ {lessonNum}
+          </Text>
+          <Text style={{ fontFamily: FONT.semibold, fontSize: 13, color: CANDY.textMuted, marginTop: 4 }}>
+            {level?.toUpperCase()} · {subject?.toUpperCase()}
+          </Text>
 
-        {/* Add lesson */}
-        <Animated.View entering={FadeInDown.delay(200).springify()} style={{ marginTop: 16 }}>
+          <View style={{ height: 1, backgroundColor: CANDY.border, marginVertical: 20 }} />
+
+          <Text style={{ fontFamily: FONT.extrabold, fontSize: 18, color: CANDY.text, marginBottom: 10 }}>
+            📖 အကြောင်းအရာ
+          </Text>
+
+          {[
+            { h: "၁။ အခြေခံ သဘောတရား", p: "ဒီသင်ခန်းစာမှာ အခြေခံ အယူအဆတွေကို လေ့လာပါမယ်။" },
+            { h: "၂။ ဥပမာများ", p: "ဗီဒီယိုထဲက ဥပမာတွေကို ကြည့်ပြီး ကိုယ်တိုင် လေ့ကျင့်ပါ။" },
+            { h: "၃။ လေ့ကျင့်ခန်း", p: "အောက်က Quiz ကို ဖြေပြီး နားလည်မှုကို စမ်းသပ်ပါ။" },
+          ].map((b, i) => (
+            <CandyCard key={i} style={{ marginBottom: 12 }}>
+              <Text style={{ fontFamily: FONT.extrabold, fontSize: 15, color: CANDY.text }}>{b.h}</Text>
+              <Text style={{ fontFamily: FONT.regular, fontSize: 14, color: CANDY.text, opacity: 0.8, marginTop: 8, lineHeight: 22 }}>
+                {b.p}
+              </Text>
+            </CandyCard>
+          ))}
+
           <CandyButton
-            label="သင်ခန်းစာ အသစ် ထည့်မယ်"
-            icon="➕"
+            label="Quiz စတင်မယ်"
+            icon="🎯"
             color={CANDY.primary}
-            onPress={() =>
-              router.push(`/(teacher)/lesson/editor?subject=${subject}`)
-            }
-            haptic="medium"
+            size="lg"
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+              router.push(`/(student)/quiz/q1`);
+            }}
+            haptic="heavy"
+            style={{ marginTop: 20 }}
           />
-        </Animated.View>
-
-        {/* Lesson list */}
-        <View style={{ gap: 12, marginTop: 20 }}>
-          {lessons.length === 0 ? (
-            <View style={{ alignItems: "center", marginTop: 40, padding: 24 }}>
-              <Text style={{ fontSize: 64 }}>📭</Text>
-              <Text
-                style={{
-                  fontFamily: FONT.extrabold,
-                  fontSize: 16,
-                  color: CANDY.text,
-                  marginTop: 16,
-                }}
-              >
-                သင်ခန်းစာ မရှိသေးပါ
-              </Text>
-              <Text
-                style={{
-                  fontFamily: FONT.semibold,
-                  fontSize: 13,
-                  color: CANDY.textMuted,
-                  marginTop: 6,
-                  textAlign: "center",
-                }}
-              >
-                အပေါ်က "သင်ခန်းစာ အသစ် ထည့်မယ်" ကို နှိပ်ပါ
-              </Text>
-            </View>
-          ) : (
-            lessons.map((l, i) => (
-              <Animated.View key={l.id} entering={FadeInDown.delay(250 + i * 50).springify()}>
-                <CandyCard bg={CANDY.surface}>
-                  <View>
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-                      <View
-                        style={{
-                          width: 44,
-                          height: 44,
-                          borderRadius: 14,
-                          backgroundColor: CANDY.primarySoft,
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      >
-                        <Text
-                          style={{
-                            fontFamily: FONT.extrabold,
-                            fontSize: 16,
-                            color: CANDY.primary,
-                          }}
-                        >
-                          {l.order}
-                        </Text>
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text
-                          style={{
-                            fontFamily: FONT.extrabold,
-                            fontSize: 14,
-                            color: CANDY.text,
-                          }}
-                          numberOfLines={1}
-                        >
-                          {l.title}
-                        </Text>
-                        <View
-                          style={{
-                            flexDirection: "row",
-                            alignItems: "center",
-                            gap: 6,
-                            marginTop: 4,
-                          }}
-                        >
-                          <View
-                            style={{
-                              paddingHorizontal: 8,
-                              paddingVertical: 2,
-                              borderRadius: 8,
-                              backgroundColor: l.published ? CANDY.mint : CANDY.yellow,
-                            }}
-                          >
-                            <Text
-                              style={{
-                                fontFamily: FONT.extrabold,
-                                fontSize: 9,
-                                color: CANDY.text,
-                              }}
-                            >
-                              {l.published ? "PUBLISHED" : "DRAFT"}
-                            </Text>
-                          </View>
-                          <Text
-                            style={{
-                              fontFamily: FONT.semibold,
-                              fontSize: 10,
-                              color: CANDY.textMuted,
-                            }}
-                          >
-                            {l.updatedAt}
-                          </Text>
-                        </View>
-                      </View>
-                    </View>
-
-                    {/* Action buttons */}
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        gap: 8,
-                        marginTop: 12,
-                        paddingTop: 12,
-                        borderTopWidth: 1,
-                        borderTopColor: CANDY.border,
-                      }}
-                    >
-                      <Pressable
-                        onPress={() => {
-                          Haptics.selectionAsync();
-                          router.push(`/(teacher)/lesson/editor?id=${l.id}`);
-                        }}
-                        style={{
-                          flex: 1,
-                          flexDirection: "row",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: 4,
-                          paddingVertical: 8,
-                          borderRadius: R.md,
-                          backgroundColor: CANDY.primarySoft,
-                        }}
-                      >
-                        <Text style={{ fontSize: 14 }}>✏️</Text>
-                        <Text
-                          style={{
-                            fontFamily: FONT.extrabold,
-                            fontSize: 11,
-                            color: CANDY.primary,
-                          }}
-                        >
-                          ပြင်
-                        </Text>
-                      </Pressable>
-                      <Pressable
-                        onPress={() => handleDelete(l)}
-                        style={{
-                          flex: 1,
-                          flexDirection: "row",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: 4,
-                          paddingVertical: 8,
-                          borderRadius: R.md,
-                          backgroundColor: "#FFE0E6",
-                        }}
-                      >
-                        <Text style={{ fontSize: 14 }}>🗑️</Text>
-                        <Text
-                          style={{
-                            fontFamily: FONT.extrabold,
-                            fontSize: 11,
-                            color: "#C2402B",
-                          }}
-                        >
-                          ဖျက်
-                        </Text>
-                      </Pressable>
-                    </View>
-                  </View>
-                </CandyCard>
-              </Animated.View>
-            ))
-          )}
         </View>
       </ScrollView>
     </SafeAreaView>

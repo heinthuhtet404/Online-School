@@ -19,7 +19,6 @@ import { CANDY, FONT, R, SHADOW } from "@/lib/design";
 import CandyButton from "@/components/ui/CandyButton";
 import CandyCard from "@/components/ui/CandyCard";
 
-const { setMode } = useMode();
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
 
@@ -98,6 +97,7 @@ export default function Welcome() {
   const router = useRouter();
   const { t } = useTranslation();
   const { lang, setLang } = useLang();
+  const { setMode } = useMode(); // Hook ကို Component အတွင်းမှာ ထားရပါမယ်
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: CANDY.bg }}>
@@ -279,42 +279,19 @@ export default function Welcome() {
             onPress={() => router.push("/(auth)/login")}
             style={{ marginBottom: 14 }}
           />
-          {/* <View style={{ flexDirection: "row", gap: 12 }}>
-            <CandyButton
-              label={t("welcome.teacher")}
-              icon="👩‍🏫"
-              color={CANDY.mint}
-              textColor={CANDY.text}
-              onPress={() => router.push("/(teacher)/dashboard")}
-              style={{ flex: 1 }}
-            />
-            <View
-              style={{
-                width: 52,
-                height: 52,
-                borderRadius: R.lg,
-                backgroundColor: CANDY.surface,
-                alignItems: "center",
-                justifyContent: "center",
-                ...SHADOW.soft,
-              }}
-            >
-              <Text style={{ fontSize: 22 }}>❓</Text>
-            </View>
-          </View> */}
-
-          // Teacher Access button
-<CandyButton
-  label={t("welcome.teacher")}
-  icon="👩‍🏫"
-  color={CANDY.mint}
-  textColor={CANDY.text}
-  onPress={() => {
-    setMode("teacher");
-    router.push("/(teacher)/dashboard");
-  }}
-  style={{ flex: 1 }}
-/>
+          
+          {/* Teacher Access button */}
+          <CandyButton
+            label={t("welcome.teacher")}
+            icon="👩‍🏫"
+            color={CANDY.mint}
+            textColor={CANDY.text}
+            onPress={() => {
+              setMode("teacher");
+              router.push("/(teacher)/dashboard");
+            }}
+            style={{ flex: 1 }}
+          />
         </Animated.View>
 
         <View style={{ flex: 1, minHeight: 20 }} />

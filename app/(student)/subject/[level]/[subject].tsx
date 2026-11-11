@@ -1,12 +1,14 @@
-import { View, Text, Dimensions } from "react-native";
+import { View, Text, Dimensions, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import Animated, { FadeInDown } from "react-native-reanimated";
+import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { useTranslation } from "react-i18next";
+import * as Haptics from "expo-haptics";
+import Animated, { FadeInDown } from "react-native-reanimated";
+import { useState, useCallback } from "react";
 import { CANDY, FONT, R } from "@/lib/design";
-import CandyPage from "@/components/ui/CandyPage";
 import CandyCard from "@/components/ui/CandyCard";
 import CandyIconButton from "@/components/ui/CandyIconButton";
+import { LessonsStore, Lesson } from "@/lib/lessons-store";
 
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
@@ -20,147 +22,108 @@ const SUBJECT_META: Record<string, { nameKey: string; emoji: string; color: stri
   geography: { nameKey: "subjects.geography", emoji: "🌍", color: "#9FE870" },
 };
 
-const LESSONS = Array.from({ length: 10 }, (_, i) => ({
-  id: `l${i + 1}`,
-  num: i + 1,
-  title: `သင်ခန်းစာ ${i + 1}`,
-  subtitle: [
-    "အခြေခံ မိတ်ဆက်", "အဓိက သဘောတရား", "ဥပမာများ", "လေ့ကျင့်ခန်း",
-    "ပြန်လည်သုံးသပ်ခြင်း", "အဆင့်မြင့်", "လက်တွေ့ ဥပမာ",
-    "စမ်းသပ်မေးခွန်း", "အကျဉ်းချုပ်", "အပိုဆောင်း",
-  ][i],
-  done: i < 3,
-}));
-
-export default function SubjectLessons() {
+export default function StudentSubjectLessons() {
   const router = useRouter();
   const { t } = useTranslation();
   const { level, subject } = useLocalSearchParams<{ level: string; subject: string }>();
   const meta = SUBJECT_META[subject ?? "math"] ?? SUBJECT_META.math;
+  const [lessons, setLessons] = useState<Lesson[]>([]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (subject) {
+        // ကျောင်းသားတွေက Published ဖြစ်တဲ့ သင်ခန်းစာတွေကိုပဲ မြင်ရမယ်
+        const allLessons = LessonsStore.getBySubject(subject);
+        setLessons(allLessons.filter((l) => l.published));
+      }
+    }, [subject])
+  );
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: CANDY.bg }}>
-      <CandyPage>
-        <View
-          style={{
-            paddingHorizontal: isTablet ? 48 : 24,
-            maxWidth: isTablet ? 900 : undefined,
-            alignSelf: "center",
-            width: "100%",
-          }}
-        >
-          {/* Header */}
-          <View style={{ marginTop: 16, flexDirection: "row", alignItems: "center", gap: 12 }}>
-            <CandyIconButton emoji="←" onPress={() => router.back()} size={44} />
-          </View>
+      <ScrollView
+        contentContainerStyle={{
+          paddingHorizontal: isTablet ? 48 : 24,
+          paddingBottom: 40,
+          maxWidth: isTablet ? 900 : undefined,
+          alignSelf: "center",
+          width: "100%",
+        }}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={{ marginTop: 16 }}>
+          <CandyIconButton emoji="←" onPress={() => router.back()} size={44} />
+        </View>
 
-          {/* Subject hero card */}
-          <Animated.View entering={FadeInDown.delay(100).springify()} style={{ marginTop: 20 }}>
-            <View
-              style={{
-                backgroundColor: meta.color,
-                borderRadius: R.xl,
-                padding: 22,
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 16,
-                shadowColor: meta.color,
-                shadowOffset: { width: 0, height: 10 },
-                shadowOpacity: 0.4,
-                shadowRadius: 18,
-                elevation: 10,
-                borderWidth: 3,
-                borderColor: "rgba(255,255,255,0.4)",
-              }}
-            >
-              <Text style={{ fontSize: isTablet ? 60 : 48 }}>{meta.emoji}</Text>
-              <View style={{ flex: 1 }}>
-                <Text
-                  style={{
-                    fontFamily: FONT.extrabold,
-                    fontSize: isTablet ? 32 : 24,
-                    color: CANDY.text,
-                    letterSpacing: -0.6,
-                  }}
-                >
-                  {t(meta.nameKey)}
-                </Text>
-                <Text
-                  style={{
-                    fontFamily: FONT.semibold,
-                    fontSize: 13,
-                    color: CANDY.text,
-                    opacity: 0.7,
-                    marginTop: 2,
-                  }}
-                >
-                  {level?.toUpperCase()} · 10 သင်ခန်းစာ
-                </Text>
-              </View>
+        <Animated.View entering={FadeInDown.delay(100).springify()} style={{ marginTop: 20 }}>
+          <View
+            style={{
+              backgroundColor: meta.color,
+              borderRadius: R.xl,
+              padding: 22,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 16,
+              shadowColor: meta.color,
+              shadowOffset: { width: 0, height: 10 },
+              shadowOpacity: 0.4,
+              shadowRadius: 18,
+              elevation: 10,
+              borderWidth: 3,
+              borderColor: "rgba(255,255,255,0.4)",
+            }}
+          >
+            <Text style={{ fontSize: isTablet ? 60 : 48 }}>{meta.emoji}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontFamily: FONT.extrabold, fontSize: isTablet ? 30 : 22, color: CANDY.text, letterSpacing: -0.6 }}>
+                {t(meta.nameKey)}
+              </Text>
+              <Text style={{ fontFamily: FONT.semibold, fontSize: 13, color: CANDY.text, opacity: 0.7, marginTop: 2 }}>
+                {lessons.length} သင်ခန်းစာ
+              </Text>
             </View>
-          </Animated.View>
+          </View>
+        </Animated.View>
 
-          {/* Lesson list */}
-          <View style={{ gap: 12, marginTop: 22 }}>
-            {LESSONS.map((l, i) => (
-              <Animated.View key={l.id} entering={FadeInDown.delay(200 + i * 50).springify()}>
+        <View style={{ gap: 12, marginTop: 20 }}>
+          {lessons.length === 0 ? (
+            <View style={{ alignItems: "center", marginTop: 40, padding: 24 }}>
+              <Text style={{ fontSize: 64 }}>📭</Text>
+              <Text style={{ fontFamily: FONT.extrabold, fontSize: 16, color: CANDY.text, marginTop: 16 }}>
+                သင်ခန်းစာ မရှိသေးပါ
+              </Text>
+            </View>
+          ) : (
+            lessons.map((l, i) => (
+              <Animated.View key={l.id} entering={FadeInDown.delay(250 + i * 50).springify()}>
                 <CandyCard
-                  onPress={() =>
-                    router.push(`/(student)/lesson/${level}/${subject}/${l.id}`)
-                  }
+                  bg={CANDY.surface}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    // ကျောင်းသား Detail Page ကို သွားမယ်
+                    router.push(`/(student)/lesson/${level}/${subject}/${l.id}`);
+                  }}
                 >
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
-                    <View
-                      style={{
-                        width: 48,
-                        height: 48,
-                        borderRadius: 16,
-                        backgroundColor: l.done ? CANDY.mint : CANDY.primarySoft,
-                        alignItems: "center",
-                        justifyContent: "center",
-                        borderWidth: 2,
-                        borderColor: "rgba(255,255,255,0.6)",
-                      }}
-                    >
-                      <Text
-                        style={{
-                          fontFamily: FONT.extrabold,
-                          fontSize: 18,
-                          color: l.done ? "#FFF" : CANDY.primary,
-                        }}
-                      >
-                        {l.done ? "✓" : l.num}
-                      </Text>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+                    <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: CANDY.primarySoft, alignItems: "center", justifyContent: "center" }}>
+                      <Text style={{ fontFamily: FONT.extrabold, fontSize: 16, color: CANDY.primary }}>{l.order}</Text>
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text
-                        style={{
-                          fontFamily: FONT.extrabold,
-                          fontSize: 14,
-                          color: CANDY.text,
-                        }}
-                      >
+                      <Text style={{ fontFamily: FONT.extrabold, fontSize: 14, color: CANDY.text }} numberOfLines={1}>
                         {l.title}
                       </Text>
-                      <Text
-                        style={{
-                          fontFamily: FONT.semibold,
-                          fontSize: 12,
-                          color: CANDY.textMuted,
-                          marginTop: 2,
-                        }}
-                      >
-                        {l.subtitle}
+                      <Text style={{ fontFamily: FONT.semibold, fontSize: 11, color: CANDY.textMuted, marginTop: 4 }}>
+                        {l.updatedAt}
                       </Text>
                     </View>
                     <Text style={{ fontSize: 18, color: CANDY.textMuted }}>›</Text>
                   </View>
                 </CandyCard>
               </Animated.View>
-            ))}
-          </View>
+            ))
+          )}
         </View>
-      </CandyPage>
+      </ScrollView>
     </SafeAreaView>
   );
 }
