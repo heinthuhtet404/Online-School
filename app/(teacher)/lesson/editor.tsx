@@ -8,35 +8,499 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  Pressable,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import * as Haptics from "expo-haptics";
-import Animated, { FadeInDown } from "react-native-reanimated";
-import { useState, useEffect } from "react";
-import { CANDY, FONT, R, SHADOW } from "@/lib/design";
-import CandyButton from "@/components/ui/CandyButton";
-import CandyIconButton from "@/components/ui/CandyIconButton";
-import CandyCard from "@/components/ui/CandyCard";
+import { LinearGradient } from "expo-linear-gradient";
+import Animated, {
+  FadeInDown,
+  FadeIn,
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withRepeat,
+  withTiming,
+  withSequence,
+  withDelay,
+  Easing,
+  interpolate,
+} from "react-native-reanimated";
+import { useState, useEffect, useRef } from "react";
+import { FONT } from "@/lib/design";
 import { LessonsStore } from "@/lib/lessons-store";
 
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
 
+// ============================================================
+// PALETTE
+// ============================================================
+const PAL = {
+  bg: "#FFF8F0",
+  bgTop: "#FFE8D6",
+  bgBottom: "#E8F4FF",
+  primary: "#FF6B6B",
+  primaryDark: "#E05050",
+  secondary: "#4ECDC4",
+  secondaryDark: "#3BA89F",
+  accent: "#FFD93D",
+  accentDark: "#E5C020",
+  text: "#2D2422",
+  textMuted: "#7A6A63",
+  divider: "#EDE3D8",
+  success: "#1E7A6F",
+  danger: "#C2402B",
+};
+
+// ============================================================
+// SUBJECTS
+// ============================================================
 const SUBJECTS = [
-  { id: "myanmar", nameKey: "subjects.myanmar", emoji: "📖" },
-  { id: "english", nameKey: "subjects.english", emoji: "🔤" },
-  { id: "math", nameKey: "subjects.math", emoji: "🔢" },
-  { id: "science", nameKey: "subjects.science", emoji: "🔬" },
-  { id: "history", nameKey: "subjects.history", emoji: "🏛️" },
-  { id: "geography", nameKey: "subjects.geography", emoji: "🌍" },
+  { id: "myanmar", nameKey: "subjects.myanmar", emoji: "📖", color: "#F4A6C0", darkColor: "#E88AA8" },
+  { id: "english", nameKey: "subjects.english", emoji: "🔤", color: "#FF6B6B", darkColor: "#E05050" },
+  { id: "math", nameKey: "subjects.math", emoji: "🔢", color: "#4ECDC4", darkColor: "#3BA89F" },
+  { id: "science", nameKey: "subjects.science", emoji: "🔬", color: "#9DD9C5", darkColor: "#7EC4AE" },
+  { id: "history", nameKey: "subjects.history", emoji: "🏛️", color: "#FFD93D", darkColor: "#E5C020" },
+  { id: "geography", nameKey: "subjects.geography", emoji: "🌍", color: "#9FE870", darkColor: "#7EC450" },
 ];
 
 function isValidYoutube(url: string) {
   return /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/.test(url);
 }
 
+type Mood = "idle" | "happy" | "excited" | "thinking" | "wave";
+
+// ============================================================
+// PIP — with teacher hat + reaction to writing
+// ============================================================
+function Pip({
+  mood = "idle",
+  size = 80,
+  prop,
+  flameTop = PAL.accent,
+  flameBottom = "#FFB84D",
+  teacher = false,
+}: {
+  mood?: Mood;
+  size?: number;
+  prop?: string;
+  flameTop?: string;
+  flameBottom?: string;
+  teacher?: boolean;
+}) {
+  const bob = useSharedValue(0);
+  const blink = useSharedValue(1);
+  const propScale = useSharedValue(0);
+
+  useEffect(() => {
+    bob.value = withRepeat(
+      withTiming(1, { duration: 2400, easing: Easing.inOut(Easing.ease) }),
+      -1,
+      true
+    );
+    blink.value = withRepeat(
+      withSequence(
+        withTiming(0.1, { duration: 100 }),
+        withTiming(1, { duration: 200 }),
+        withDelay(2800, withTiming(1, { duration: 100 }))
+      ),
+      -1,
+      false
+    );
+  }, []);
+
+  useEffect(() => {
+    if (prop) {
+      propScale.value = 0;
+      propScale.value = withSpring(1, { damping: 12, stiffness: 300 });
+    } else {
+      propScale.value = withTiming(0, { duration: 200 });
+    }
+  }, [prop]);
+
+  const bodyAnim = useAnimatedStyle(() => ({
+    transform: [
+      { translateY: interpolate(bob.value, [0, 1], [0, -5]) },
+      {
+        rotate:
+          mood === "excited"
+            ? `${interpolate(bob.value, [0, 1], [-4, 4])}deg`
+            : "0deg",
+      },
+    ],
+  }));
+  const eyeAnim = useAnimatedStyle(() => ({
+    transform: [{ scaleY: blink.value }],
+  }));
+  const propAnim = useAnimatedStyle(() => ({
+    transform: [{ scale: propScale.value }],
+    opacity: propScale.value,
+  }));
+
+  return (
+    <Animated.View style={[bodyAnim, { width: size, height: size * 1.3 }]}>
+      {/* Teacher hat */}
+      {teacher && (
+        <View
+          style={{
+            position: "absolute",
+            top: -size * 0.08,
+            left: size * 0.28,
+            width: size * 0.44,
+            alignItems: "center",
+            zIndex: 10,
+          }}
+        >
+          <View
+            style={{
+              width: size * 0.34,
+              height: size * 0.26,
+              backgroundColor: "#2D2422",
+              borderTopLeftRadius: size * 0.17,
+              borderTopRightRadius: size * 0.17,
+              borderWidth: 2,
+              borderColor: "#1A1512",
+            }}
+          />
+          <View
+            style={{
+              width: size * 0.44,
+              height: size * 0.06,
+              backgroundColor: "#2D2422",
+              borderRadius: size * 0.03,
+              marginTop: -2,
+            }}
+          />
+          <View
+            style={{
+              position: "absolute",
+              top: size * 0.18,
+              right: size * 0.02,
+              width: 3,
+              height: size * 0.14,
+              backgroundColor: PAL.accent,
+            }}
+          />
+          <View
+            style={{
+              position: "absolute",
+              top: size * 0.3,
+              right: -size * 0.04,
+              width: size * 0.08,
+              height: size * 0.08,
+              borderRadius: size * 0.04,
+              backgroundColor: PAL.accent,
+            }}
+          />
+        </View>
+      )}
+
+      {/* Flame */}
+      <View
+        style={{
+          position: "absolute",
+          bottom: 0,
+          left: size * 0.32,
+          width: size * 0.36,
+          height: size * 0.32,
+          alignItems: "center",
+        }}
+      >
+        <LinearGradient
+          colors={[flameTop, flameBottom, "rgba(255,184,77,0)"]}
+          locations={[0, 0.5, 1]}
+          style={{
+            width: size * 0.28,
+            height: size * 0.3,
+            borderTopLeftRadius: size * 0.14,
+            borderTopRightRadius: size * 0.14,
+            borderBottomLeftRadius: size * 0.03,
+            borderBottomRightRadius: size * 0.03,
+          }}
+        />
+      </View>
+
+      {/* Fins */}
+      <View
+        style={{
+          position: "absolute",
+          bottom: size * 0.3,
+          left: size * 0.04,
+          width: size * 0.16,
+          height: size * 0.3,
+          backgroundColor: PAL.primaryDark,
+          borderTopLeftRadius: size * 0.09,
+          borderBottomLeftRadius: size * 0.15,
+          transform: [{ rotate: "-14deg" }],
+        }}
+      />
+      <View
+        style={{
+          position: "absolute",
+          bottom: size * 0.3,
+          right: size * 0.04,
+          width: size * 0.16,
+          height: size * 0.3,
+          backgroundColor: PAL.primaryDark,
+          borderTopRightRadius: size * 0.09,
+          borderBottomRightRadius: size * 0.15,
+          transform: [{ rotate: "14deg" }],
+        }}
+      />
+
+      {/* Body */}
+      <View
+        style={{
+          position: "absolute",
+          bottom: size * 0.15,
+          left: size * 0.18,
+          width: size * 0.64,
+          height: size * 0.82,
+          borderRadius: size * 0.32,
+          backgroundColor: PAL.primary,
+          borderWidth: 2.5,
+          borderColor: PAL.primaryDark,
+        }}
+      >
+        {/* Face */}
+        <View
+          style={{
+            position: "absolute",
+            top: size * 0.14,
+            left: size * 0.05,
+            right: size * 0.05,
+            bottom: size * 0.05,
+            borderRadius: size * 0.25,
+            backgroundColor: "#FFF5F0",
+            borderWidth: 2,
+            borderColor: PAL.primaryDark,
+          }}
+        >
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "center",
+              gap: size * 0.13,
+              marginTop: size * 0.12,
+            }}
+          >
+            {[0, 1].map((i) => (
+              <Animated.View
+                key={i}
+                style={[
+                  eyeAnim,
+                  {
+                    width: size * 0.08,
+                    height: size * 0.11,
+                    borderRadius: size * 0.04,
+                    backgroundColor: "#2D2422",
+                    alignItems: "center",
+                    justifyContent: "flex-start",
+                  },
+                ]}
+              >
+                <View
+                  style={{
+                    width: size * 0.03,
+                    height: size * 0.03,
+                    borderRadius: size * 0.015,
+                    backgroundColor: "#FFFFFF",
+                    marginTop: size * 0.02,
+                    marginLeft: size * 0.025,
+                  }}
+                />
+              </Animated.View>
+            ))}
+          </View>
+          <View
+            style={{
+              alignSelf: "center",
+              marginTop: size * 0.05,
+              width: mood === "excited" ? size * 0.13 : size * 0.09,
+              height: mood === "excited" ? size * 0.09 : size * 0.05,
+              borderBottomLeftRadius: size * 0.06,
+              borderBottomRightRadius: size * 0.06,
+              backgroundColor: "#2D2422",
+              overflow: "hidden",
+            }}
+          >
+            <View
+              style={{
+                position: "absolute",
+                bottom: 0,
+                left: "25%",
+                right: "25%",
+                height: "45%",
+                backgroundColor: "#FF6B8A",
+                borderTopLeftRadius: size * 0.02,
+                borderTopRightRadius: size * 0.02,
+              }}
+            />
+          </View>
+        </View>
+        {/* Window */}
+        <View
+          style={{
+            position: "absolute",
+            top: -size * 0.05,
+            alignSelf: "center",
+            width: size * 0.2,
+            height: size * 0.2,
+            borderRadius: size * 0.1,
+            backgroundColor: PAL.secondary,
+            borderWidth: 2,
+            borderColor: PAL.secondaryDark,
+          }}
+        />
+      </View>
+
+      {/* Prop */}
+      {prop && (
+        <Animated.View
+          style={[
+            propAnim,
+            {
+              position: "absolute",
+              bottom: 0,
+              right: -size * 0.1,
+              width: size * 0.4,
+              height: size * 0.4,
+              borderRadius: size * 0.2,
+              backgroundColor: "#FFFFFF",
+              borderWidth: 2.5,
+              borderColor: PAL.primaryDark,
+              alignItems: "center",
+              justifyContent: "center",
+            },
+          ]}
+        >
+          <Text style={{ fontSize: size * 0.2 }}>{prop}</Text>
+        </Animated.View>
+      )}
+    </Animated.View>
+  );
+}
+
+// ============================================================
+// MINIMAL INPUT
+// ============================================================
+function MinimalInput({
+  label,
+  value,
+  onChangeText,
+  placeholder,
+  focused,
+  onFocus,
+  onBlur,
+  multiline,
+  keyboardType,
+  autoCapitalize,
+  minHeight,
+}: {
+  label: string;
+  value: string;
+  onChangeText: (t: string) => void;
+  placeholder?: string;
+  focused: boolean;
+  onFocus: () => void;
+  onBlur: () => void;
+  multiline?: boolean;
+  keyboardType?: any;
+  autoCapitalize?: any;
+  minHeight?: number;
+}) {
+  return (
+    <View style={{ marginBottom: 18 }}>
+      <Text
+        style={{
+          fontFamily: FONT.extrabold,
+          fontSize: 11,
+          color: focused ? PAL.primary : PAL.textMuted,
+          letterSpacing: 1.2,
+          marginBottom: 6,
+          marginLeft: 2,
+        }}
+      >
+        {label.toUpperCase()}
+      </Text>
+      <TextInput
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        placeholderTextColor={PAL.textMuted + "80"}
+        onFocus={onFocus}
+        onBlur={onBlur}
+        multiline={multiline}
+        keyboardType={keyboardType}
+        autoCapitalize={autoCapitalize}
+        style={{
+          paddingVertical: 10,
+          paddingHorizontal: 2,
+          fontFamily: FONT.semibold,
+          fontSize: 15,
+          color: PAL.text,
+          borderBottomWidth: focused ? 2.5 : 1.5,
+          borderBottomColor: focused ? PAL.primary : PAL.divider,
+          minHeight: minHeight ?? undefined,
+          textAlignVertical: multiline ? "top" : "center",
+        }}
+      />
+    </View>
+  );
+}
+
+// ============================================================
+// SUBJECT CHIP
+// ============================================================
+function SubjectChip({
+  subject,
+  active,
+  onPress,
+  name,
+}: {
+  subject: (typeof SUBJECTS)[0];
+  active: boolean;
+  onPress: () => void;
+  name: string;
+}) {
+  return (
+    <Pressable
+      onPress={() => {
+        Haptics.selectionAsync();
+        onPress();
+      }}
+      style={{
+        paddingHorizontal: 14,
+        paddingVertical: 8,
+        borderRadius: 999,
+        backgroundColor: active ? subject.color : "transparent",
+        borderWidth: 1.5,
+        borderColor: active ? subject.color : PAL.divider,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+      }}
+    >
+      <Text style={{ fontSize: 13 }}>{subject.emoji}</Text>
+      <Text
+        style={{
+          fontFamily: FONT.extrabold,
+          fontSize: 12,
+          color: active ? "#FFFFFF" : PAL.text,
+        }}
+      >
+        {name}
+      </Text>
+    </Pressable>
+  );
+}
+
+// ============================================================
+// MAIN SCREEN
+// ============================================================
 export default function LessonEditor() {
   const router = useRouter();
   const { t } = useTranslation();
@@ -49,19 +513,38 @@ export default function LessonEditor() {
   const isEdit = !!id;
 
   const [subject, setSubject] = useState(initialSubject ?? "math");
-  const [grade, setGrade] = useState(initialGrade ?? "g1"); // ⭐ Grade ကို လက်ခံပါ
+  const [grade, setGrade] = useState(initialGrade ?? "g1");
   const [title, setTitle] = useState("");
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [content, setContent] = useState("");
   const [published, setPublished] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [focusField, setFocusField] = useState<string | null>(null);
+
+  const [mood, setMood] = useState<Mood>("idle");
+  const [message, setMessage] = useState(
+    isEdit ? "Edit your lesson! ✏️" : "Let's create a new lesson! ➕"
+  );
+  const resetTimer = useRef<any>(null);
+
+  const react = (newMood: Mood, msg: string) => {
+    if (resetTimer.current) clearTimeout(resetTimer.current);
+    setMood(newMood);
+    setMessage(msg);
+    resetTimer.current = setTimeout(() => {
+      setMood("idle");
+      setMessage(isEdit ? "Edit your lesson! ✏️" : "Let's create a new lesson! ➕");
+    }, 2200);
+  };
+
+  const activeSubject = SUBJECTS.find((s) => s.id === subject) ?? SUBJECTS[2];
 
   useEffect(() => {
     if (isEdit) {
       const l = LessonsStore.get(id!);
       if (l) {
         setSubject(l.subject);
-        setGrade(l.grade); // ⭐ edit လုပ်ရင် grade ကိုပါ ပြင်ခွင့်ပြု
+        setGrade(l.grade);
         setTitle(l.title);
         setYoutubeUrl(l.youtubeUrl);
         setContent(l.content);
@@ -69,6 +552,12 @@ export default function LessonEditor() {
       }
     }
   }, [id]);
+
+  useEffect(() => {
+    return () => {
+      if (resetTimer.current) clearTimeout(resetTimer.current);
+    };
+  }, []);
 
   const handleSave = () => {
     if (!title.trim()) {
@@ -82,11 +571,12 @@ export default function LessonEditor() {
 
     setSaving(true);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    react("excited", "Saving lesson... 💾");
 
     if (isEdit) {
       LessonsStore.update(id!, {
         subject,
-        grade, // ⭐ update မှာပါ ထည့်ပါ
+        grade,
         title,
         youtubeUrl,
         content,
@@ -95,7 +585,7 @@ export default function LessonEditor() {
     } else {
       LessonsStore.add({
         subject,
-        grade, // ⭐ Hardcode "g3" အစား grade state ကို သုံးပါ
+        grade,
         title,
         youtubeUrl,
         content,
@@ -123,98 +613,310 @@ export default function LessonEditor() {
     ]);
   };
 
+  // Progress: how many key fields are filled
+  const filledCount = [title, youtubeUrl, content].filter((v) => v.length > 0).length;
+  const progressProp =
+    filledCount === 3 ? "✨" : filledCount > 0 ? "📝" : activeSubject.emoji;
+
+  const flameTop = `${activeSubject.color}99`;
+  const flameBottom = activeSubject.color;
+
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: CANDY.bg }}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={{ flex: 1 }}
-      >
-        <ScrollView
-          contentContainerStyle={{
-            paddingHorizontal: isTablet ? 48 : 24,
-            paddingBottom: 40,
-            maxWidth: isTablet ? 700 : undefined,
-            alignSelf: "center",
-            width: "100%",
-          }}
-          showsVerticalScrollIndicator={false}
+    <View style={{ flex: 1, backgroundColor: PAL.bg }}>
+      <LinearGradient
+        colors={[PAL.bgTop, PAL.bg, PAL.bgBottom]}
+        locations={[0, 0.5, 1]}
+        style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
+      />
+      <SafeAreaView style={{ flex: 1 }}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={{ flex: 1 }}
         >
-          <View style={{ marginTop: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-            <CandyIconButton emoji="←" onPress={() => router.back()} size={44} />
-            {isEdit && (
-              <CandyIconButton emoji="🗑️" onPress={handleDelete} size={44} bg="#FFE0E6" />
-            )}
-          </View>
-
-          <Animated.View entering={FadeInDown.delay(100).springify()} style={{ marginTop: 20 }}>
-            <Text style={{ fontFamily: FONT.extrabold, fontSize: isTablet ? 34 : 26, color: CANDY.text, letterSpacing: -0.8 }}>
-              {isEdit ? "✏️ သင်ခန်းစာ ပြင်" : "➕ သင်ခန်းစာ အသစ်"}
-            </Text>
-            <Text style={{ fontFamily: FONT.semibold, fontSize: 14, color: CANDY.textMuted, marginTop: 6 }}>
-              YouTube URL နဲ့ content ကို ထည့်ပါ
-            </Text>
-          </Animated.View>
-
-          <Animated.View entering={FadeInDown.delay(200).springify()} style={{ marginTop: 24 }}>
-            <Label>ဘာသာရပ်</Label>
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-              {SUBJECTS.map((s) => {
-                const active = subject === s.id;
-                return (
-                  <Chip
-                    key={s.id}
-                    active={active}
-                    onPress={() => {
-                      Haptics.selectionAsync();
-                      setSubject(s.id);
-                    }}
-                    emoji={s.emoji}
-                    label={t(s.nameKey)}
-                  />
-                );
-              })}
+          <ScrollView
+            contentContainerStyle={{
+              paddingHorizontal: isTablet ? 48 : 24,
+              paddingBottom: 40,
+              maxWidth: isTablet ? 600 : undefined,
+              alignSelf: "center",
+              width: "100%",
+            }}
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Top bar */}
+            <View
+              style={{
+                marginTop: 12,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <Pressable
+                onPress={() => {
+                  Haptics.selectionAsync();
+                  router.back();
+                }}
+                style={{
+                  width: 40,
+                  height: 40,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Text style={{ fontSize: 22, color: PAL.text }}>←</Text>
+              </Pressable>
+              {isEdit && (
+                <Pressable
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+                    handleDelete();
+                  }}
+                  style={{
+                    width: 40,
+                    height: 40,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Text style={{ fontSize: 20 }}>🗑️</Text>
+                </Pressable>
+              )}
             </View>
-          </Animated.View>
 
-          <Animated.View entering={FadeInDown.delay(250).springify()} style={{ marginTop: 20 }}>
-            <Label>ခေါင်းစဉ် *</Label>
-            <Input value={title} onChangeText={setTitle} placeholder="ဥပမာ — သင်ခန်းစာ ၁" />
-          </Animated.View>
+            {/* Pip + message */}
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 12,
+                marginTop: 8,
+                marginBottom: 20,
+              }}
+            >
+              <Pressable
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  react(
+                    "excited",
+                    filledCount === 3
+                      ? "Ready to save! ✨"
+                      : "Fill in the fields below! 📝"
+                  );
+                }}
+              >
+                <Pip
+                  mood={mood}
+                  size={isTablet ? 90 : 76}
+                  prop={progressProp}
+                  flameTop={flameTop}
+                  flameBottom={flameBottom}
+                  teacher
+                />
+              </Pressable>
+              <Animated.View entering={FadeIn.delay(200)} style={{ flex: 1 }}>
+                <Text
+                  style={{
+                    fontFamily: FONT.semibold,
+                    fontSize: 14,
+                    color: PAL.textMuted,
+                    lineHeight: 20,
+                  }}
+                >
+                  {message}
+                </Text>
+                {/* Progress dots */}
+                <View
+                  style={{ flexDirection: "row", gap: 6, marginTop: 8 }}
+                >
+                  {[0, 1, 2].map((i) => (
+                    <View
+                      key={i}
+                      style={{
+                        width: i < filledCount ? 20 : 8,
+                        height: 8,
+                        borderRadius: 4,
+                        backgroundColor:
+                          i < filledCount ? PAL.primary : PAL.divider,
+                      }}
+                    />
+                  ))}
+                </View>
+              </Animated.View>
+            </View>
 
-          <Animated.View entering={FadeInDown.delay(300).springify()} style={{ marginTop: 16 }}>
-            <Label>YouTube Unlisted URL</Label>
-            <Input
-              value={youtubeUrl}
-              onChangeText={setYoutubeUrl}
-              placeholder="https://youtu.be/xxxxx"
-              autoCapitalize="none"
-              keyboardType="url"
-            />
-            {youtubeUrl.length > 0 && (
-              <Text style={{ fontFamily: FONT.semibold, fontSize: 11, color: isValidYoutube(youtubeUrl) ? "#1E7A6F" : "#C2402B", marginTop: 6, marginLeft: 4 }}>
-                {isValidYoutube(youtubeUrl) ? "✓ URL မှန်ပါတယ်" : "✗ URL မမှန်ပါ"}
+            {/* Title */}
+            <Animated.View entering={FadeInDown.delay(100).springify()}>
+              <Text
+                style={{
+                  fontFamily: FONT.extrabold,
+                  fontSize: isTablet ? 34 : 26,
+                  color: PAL.text,
+                  letterSpacing: -0.8,
+                  lineHeight: isTablet ? 40 : 32,
+                }}
+              >
+                {isEdit ? "✏️ သင်ခန်းစာ ပြင်" : "➕ သင်ခန်းစာ အသစ်"}
               </Text>
-            )}
-          </Animated.View>
+              <Text
+                style={{
+                  fontFamily: FONT.semibold,
+                  fontSize: 13,
+                  color: PAL.textMuted,
+                  marginTop: 6,
+                }}
+              >
+                YouTube URL နဲ့ content ကို ထည့်ပါ
+              </Text>
+            </Animated.View>
 
-          <Animated.View entering={FadeInDown.delay(350).springify()} style={{ marginTop: 16 }}>
-            <Label>အကြောင်းအရာ</Label>
-            <Input
-              value={content}
-              onChangeText={setContent}
-              placeholder="သင်ခန်းစာ အကြောင်းအရာ..."
-              multiline
-              numberOfLines={5}
-              style={{ minHeight: 120, textAlignVertical: "top" }}
+            <View
+              style={{
+                height: 1,
+                backgroundColor: PAL.divider,
+                marginTop: 24,
+                marginBottom: 20,
+              }}
             />
-          </Animated.View>
 
-          <Animated.View entering={FadeInDown.delay(400).springify()} style={{ marginTop: 16 }}>
-            <CandyCard>
-              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+            {/* Subject chips */}
+            <Animated.View entering={FadeInDown.delay(150).springify()}>
+              <Text
+                style={{
+                  fontFamily: FONT.extrabold,
+                  fontSize: 11,
+                  color: PAL.textMuted,
+                  letterSpacing: 1.2,
+                  marginBottom: 10,
+                }}
+              >
+                ဘာသာရပ်
+              </Text>
+              <View
+                style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}
+              >
+                {SUBJECTS.map((s) => (
+                  <SubjectChip
+                    key={s.id}
+                    subject={s}
+                    active={subject === s.id}
+                    name={t(s.nameKey)}
+                    onPress={() => {
+                      setSubject(s.id);
+                      react("happy", `${t(s.nameKey)}! Good choice! 🎓`);
+                    }}
+                  />
+                ))}
+              </View>
+            </Animated.View>
+
+            {/* Title input */}
+            <Animated.View
+              entering={FadeInDown.delay(200).springify()}
+              style={{ marginTop: 24 }}
+            >
+              <MinimalInput
+                label="ခေါင်းစဉ် *"
+                value={title}
+                onChangeText={(v) => {
+                  setTitle(v);
+                  if (v.length === 1) react("happy", "Good start! ✍️");
+                }}
+                placeholder="ဥပမာ — သင်ခန်းစာ ၁"
+                focused={focusField === "title"}
+                onFocus={() => {
+                  setFocusField("title");
+                  if (!title) react("thinking", "Type a catchy title! ✍️");
+                }}
+                onBlur={() => setFocusField(null)}
+              />
+            </Animated.View>
+
+            {/* YouTube URL */}
+            <Animated.View entering={FadeInDown.delay(250).springify()}>
+              <MinimalInput
+                label="YouTube Unlisted URL"
+                value={youtubeUrl}
+                onChangeText={setYoutubeUrl}
+                placeholder="https://youtu.be/xxxxx"
+                autoCapitalize="none"
+                keyboardType="url"
+                focused={focusField === "url"}
+                onFocus={() => {
+                  setFocusField("url");
+                  react("thinking", "Paste the video link! 🔗");
+                }}
+                onBlur={() => setFocusField(null)}
+              />
+              {youtubeUrl.length > 0 && (
+                <Text
+                  style={{
+                    fontFamily: FONT.extrabold,
+                    fontSize: 11,
+                    color: isValidYoutube(youtubeUrl) ? PAL.success : PAL.danger,
+                    marginTop: -10,
+                    marginBottom: 16,
+                    marginLeft: 4,
+                    letterSpacing: 0.5,
+                  }}
+                >
+                  {isValidYoutube(youtubeUrl)
+                    ? "✓ URL မှန်ပါတယ်"
+                    : "✗ URL မမှန်ပါ"}
+                </Text>
+              )}
+            </Animated.View>
+
+            {/* Content */}
+            <Animated.View entering={FadeInDown.delay(300).springify()}>
+              <MinimalInput
+                label="အကြောင်းအရာ"
+                value={content}
+                onChangeText={(v) => {
+                  setContent(v);
+                  if (v.length > 50 && content.length < 50)
+                    react("happy", "Nice detail! 📝");
+                }}
+                placeholder="သင်ခန်းစာ အကြောင်းအရာ..."
+                multiline
+                minHeight={100}
+                focused={focusField === "content"}
+                onFocus={() => {
+                  setFocusField("content");
+                  react("thinking", "Tell the story! 📖");
+                }}
+                onBlur={() => setFocusField(null)}
+              />
+            </Animated.View>
+
+            {/* Published toggle — minimal row */}
+            <Animated.View entering={FadeInDown.delay(350).springify()}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  paddingVertical: 14,
+                  marginTop: 4,
+                }}
+              >
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontFamily: FONT.extrabold, fontSize: 14, color: CANDY.text }}>Published</Text>
-                  <Text style={{ fontFamily: FONT.semibold, fontSize: 11, color: CANDY.textMuted, marginTop: 2 }}>
+                  <Text
+                    style={{
+                      fontFamily: FONT.extrabold,
+                      fontSize: 15,
+                      color: PAL.text,
+                    }}
+                  >
+                    Published
+                  </Text>
+                  <Text
+                    style={{
+                      fontFamily: FONT.semibold,
+                      fontSize: 12,
+                      color: PAL.textMuted,
+                      marginTop: 2,
+                    }}
+                  >
                     Student တွေ မြင်နိုင်မယ်
                   </Text>
                 </View>
@@ -223,83 +925,57 @@ export default function LessonEditor() {
                   onValueChange={(v) => {
                     Haptics.selectionAsync();
                     setPublished(v);
+                    react(
+                      v ? "excited" : "thinking",
+                      v ? "Students will see it! ✅" : "Saved as draft 📝"
+                    );
                   }}
-                  trackColor={{ true: CANDY.primary, false: "#DDD" }}
+                  trackColor={{ true: PAL.primary, false: PAL.divider }}
                   thumbColor="#FFF"
                 />
               </View>
-            </CandyCard>
-          </Animated.View>
+              <View style={{ height: 1, backgroundColor: PAL.divider }} />
+            </Animated.View>
 
-          <Animated.View entering={FadeInDown.delay(450).springify()} style={{ marginTop: 24 }}>
-            <CandyButton
-              label={saving ? "သိမ်းနေသည်..." : isEdit ? "ပြင်ဆင်ချက် သိမ်းမယ်" : "သင်ခန်းစာ ထည့်မယ်"}
-              icon={saving ? "⏳" : "💾"}
-              color={CANDY.primary}
-              size="lg"
-              onPress={handleSave}
-              haptic="heavy"
-              disabled={saving}
-            />
-          </Animated.View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
-  );
-}
-
-function Label({ children }: { children: React.ReactNode }) {
-  return (
-    <Text style={{ fontFamily: FONT.extrabold, fontSize: 12, color: CANDY.textMuted, marginBottom: 8, marginLeft: 4, letterSpacing: 0.5 }}>
-      {children}
-    </Text>
-  );
-}
-
-function Input({ style, ...props }: any) {
-  return (
-    <TextInput
-      placeholderTextColor={CANDY.textMuted}
-      style={[
-        {
-          backgroundColor: CANDY.surface,
-          borderRadius: R.lg,
-          paddingHorizontal: 16,
-          paddingVertical: 14,
-          fontFamily: FONT.semibold,
-          fontSize: 14,
-          color: CANDY.text,
-          borderWidth: 2,
-          borderColor: CANDY.border,
-          ...SHADOW.soft,
-        },
-        style,
-      ]}
-      {...props}
-    />
-  );
-}
-
-function Chip({ active, onPress, emoji, label }: { active: boolean; onPress: () => void; emoji: string; label: string }) {
-  return (
-    <View
-      onTouchEnd={onPress}
-      style={{
-        paddingHorizontal: 14,
-        paddingVertical: 10,
-        borderRadius: R.md,
-        backgroundColor: active ? CANDY.primary : CANDY.surface,
-        borderWidth: 2,
-        borderColor: active ? CANDY.primaryDark : CANDY.border,
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 6,
-      }}
-    >
-      <Text style={{ fontSize: 14 }}>{emoji}</Text>
-      <Text style={{ fontFamily: FONT.extrabold, fontSize: 12, color: active ? "#FFF" : CANDY.text }}>
-        {label}
-      </Text>
+            {/* Save button */}
+            <Animated.View entering={FadeInDown.delay(400).springify()}>
+              <Pressable
+                onPress={handleSave}
+                disabled={saving}
+                style={{
+                  backgroundColor: PAL.primary,
+                  borderRadius: 999,
+                  paddingVertical: 16,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginTop: 28,
+                  flexDirection: "row",
+                  gap: 8,
+                  opacity: saving ? 0.6 : 1,
+                }}
+              >
+                <Text style={{ fontSize: 15, color: "#FFFFFF" }}>
+                  {saving ? "⏳" : "💾"}
+                </Text>
+                <Text
+                  style={{
+                    fontFamily: FONT.extrabold,
+                    fontSize: 15,
+                    color: "#FFFFFF",
+                    letterSpacing: 0.3,
+                  }}
+                >
+                  {saving
+                    ? "သိမ်းနေသည်..."
+                    : isEdit
+                    ? "ပြင်ဆင်ချက် သိမ်းမယ်"
+                    : "သင်ခန်းစာ ထည့်မယ်"}
+                </Text>
+              </Pressable>
+            </Animated.View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
     </View>
   );
 }
