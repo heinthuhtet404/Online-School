@@ -12,586 +12,515 @@ import Animated, {
   withRepeat,
   withTiming,
   withSpring,
-  withDelay,
   withSequence,
+  withDelay,
   Easing,
   FadeInDown,
   FadeIn,
+  interpolate,
 } from "react-native-reanimated";
 import { useEffect, useState } from "react";
 import { FONT } from "@/lib/design";
 
-const { width, height } = Dimensions.get("window");
+const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
 
 // ============================================================
-// HAND-DRAWN PALETTE — crayon, ink, kraft paper
+// PALETTE — warm, friendly, kid-safe
 // ============================================================
-const DOODLE = {
-  // Paper
-  paper: "#FAF4E8",       // warm cream
-  paperLine: "#E8DFCC",   // lined paper lines
-  paperMargin: "#F4C6C6", // red margin line
-  paperShadow: "#E5D9C0", // shading
+const PAL = {
+  bg: "#FFF8F0",           // warm cream
+  bgTop: "#FFE8D6",        // peachy top
+  bgBottom: "#E8F4FF",     // sky bottom
 
-  // Ink colors (marker/crayon)
-  ink: "#2B2B2B",         // soft black ink
-  inkMuted: "#6B5F52",    // brownish ink
-  red: "#E8564A",         // crayon red
-  orange: "#F29F4A",      // crayon orange
-  yellow: "#F5C842",      // crayon yellow
-  green: "#5BA85A",       // crayon green
-  teal: "#4A9BA5",        // crayon teal
-  blue: "#4A78B5",        // crayon blue
-  purple: "#8B6BA8",      // crayon purple
-  pink: "#E88BA8",        // crayon pink
+  primary: "#FF6B6B",      // coral red (Pip's body)
+  primaryDark: "#E05050",
+  primaryLight: "#FF9999",
 
-  // Eraser / highlight
-  highlight: "#FFF3A0",   // yellow highlighter
-  white: "#FFFFFF",
+  secondary: "#4ECDC4",    // teal (Pip's window)
+  secondaryDark: "#3BA89F",
+
+  accent: "#FFD93D",       // sunny yellow
+  accentDark: "#E5C020",
+
+  purple: "#A78BFA",
+  purpleDark: "#8B6FE0",
+
+  text: "#2D2422",         // warm dark brown
+  textMuted: "#7A6A63",
+  textLight: "#FFFFFF",
+
+  bubble: "#FFFFFF",
+  bubbleBorder: "#E8DDD5",
 };
 
 // ============================================================
-// HAND-DRAWN SURFACE — wobbly paper card
+// CHARACTER STATE
 // ============================================================
-function DoodleCard({
-  children,
-  style,
-  rotation = -1.2,
-  borderColor = DOODLE.ink,
-  bg = DOODLE.white,
-  sketchy = true,
+type Mood = "idle" | "happy" | "excited" | "wave" | "sleepy";
+
+// ============================================================
+// PIP THE ROCKET — the mascot
+// ============================================================
+function Pip({
+  mood = "idle",
+  size = 180,
 }: {
-  children: React.ReactNode;
-  style?: any;
-  rotation?: number;
-  borderColor?: string;
-  bg?: string;
-  sketchy?: boolean;
-}) {
-  return (
-    <View
-      style={[
-        {
-          transform: [{ rotate: `${rotation}deg` }],
-          // rough "marker shadow" — hard offset shadow, not soft
-          shadowColor: DOODLE.inkMuted,
-          shadowOffset: { width: 4, height: 4 },
-          shadowOpacity: 0.25,
-          shadowRadius: 0,
-          elevation: 2,
-        },
-        style,
-      ]}
-    >
-      <View
-        style={{
-          backgroundColor: bg,
-          borderRadius: 6,
-          borderWidth: 2.5,
-          borderColor,
-          padding: 12,
-          // Sketchy double-edge fake — an offset lighter border
-          // that makes the border look drawn twice
-          ...(sketchy
-            ? {
-                borderTopRightRadius: 12,
-                borderBottomLeftRadius: 10,
-                borderBottomRightRadius: 14,
-                borderTopLeftRadius: 8,
-              }
-            : {}),
-        }}
-      >
-        {/* Second offset border stroke, offset by 1px — fakes sketchiness */}
-        {sketchy && (
-          <View
-            pointerEvents="none"
-            style={{
-              position: "absolute",
-              top: -2,
-              left: -2,
-              right: 1,
-              bottom: 1,
-              borderRadius: 8,
-              borderWidth: 1,
-              borderColor: borderColor + "55",
-            }}
-          />
-        )}
-        {children}
-      </View>
-    </View>
-  );
-}
-
-// ============================================================
-// SKETCHY BUTTON
-// ============================================================
-function DoodleButton({
-  label,
-  icon,
-  onPress,
-  color = DOODLE.blue,
-  textColor = DOODLE.ink,
-  rotation = 0.8,
-  style,
-  size = "md",
-}: {
-  label: string;
-  icon?: string;
-  onPress: () => void;
-  color?: string;
-  textColor?: string;
-  rotation?: number;
-  style?: any;
-  size?: "md" | "lg";
-}) {
-  const [pressed, setPressed] = useState(false);
-  const isLg = size === "lg";
-
-  return (
-    <View
-      style={[
-        {
-          transform: [
-            { rotate: `${rotation}deg` },
-            { translateY: pressed ? 3 : 0 },
-            { scale: pressed ? 0.98 : 1 },
-          ],
-          // Hard offset shadow — like a marker shadow
-          shadowColor: DOODLE.inkMuted,
-          shadowOffset: { width: pressed ? 1 : 4, height: pressed ? 1 : 4 },
-          shadowOpacity: 0.35,
-          shadowRadius: 0,
-          elevation: pressed ? 1 : 4,
-        },
-        style,
-      ]}
-    >
-      <Pressable
-        onPressIn={() => setPressed(true)}
-        onPressOut={() => setPressed(false)}
-        onPress={() => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-          onPress();
-        }}
-      >
-        <View
-          style={{
-            backgroundColor: color,
-            borderRadius: 8,
-            borderWidth: 2.5,
-            borderColor: DOODLE.ink,
-            paddingVertical: isLg ? 18 : 14,
-            paddingHorizontal: 24,
-            alignItems: "center",
-            justifyContent: "center",
-            // slightly asymmetrical — hand-drawn imperfection
-            borderTopLeftRadius: 10,
-            borderTopRightRadius: 6,
-            borderBottomLeftRadius: 8,
-            borderBottomRightRadius: 12,
-          }}
-        >
-          {/* Slight inner highlight — the "fill" marker stroke */}
-          <View
-            pointerEvents="none"
-            style={{
-              position: "absolute",
-              top: 2,
-              left: 4,
-              right: 8,
-              height: 3,
-              borderRadius: 2,
-              backgroundColor: "rgba(255,255,255,0.35)",
-            }}
-          />
-          <Text
-            style={{
-              fontFamily: FONT.extrabold,
-              fontSize: isLg ? 18 : 16,
-              color: textColor,
-              letterSpacing: 0.2,
-            }}
-          >
-            {icon ? `${icon}  ` : ""}
-            {label}
-          </Text>
-        </View>
-      </Pressable>
-    </View>
-  );
-}
-
-// ============================================================
-// STICKY NOTE
-// ============================================================
-function StickyNote({
-  children,
-  color = DOODLE.highlight,
-  rotation = -2.5,
-  style,
-}: {
-  children: React.ReactNode;
-  color?: string;
-  rotation?: number;
-  style?: any;
-}) {
-  return (
-    <View
-      style={[
-        {
-          transform: [{ rotate: `${rotation}deg` }],
-          shadowColor: DOODLE.inkMuted,
-          shadowOffset: { width: 3, height: 4 },
-          shadowOpacity: 0.3,
-          shadowRadius: 2,
-          elevation: 3,
-        },
-        style,
-      ]}
-    >
-      <View
-        style={{
-          backgroundColor: color,
-          paddingHorizontal: 14,
-          paddingVertical: 10,
-          // slightly asymmetric corners (sticky note look)
-          borderTopLeftRadius: 2,
-          borderTopRightRadius: 2,
-          borderBottomLeftRadius: 4,
-          borderBottomRightRadius: 14,
-        }}
-      >
-        {children}
-      </View>
-    </View>
-  );
-}
-
-// ============================================================
-// PAPER LINES BACKGROUND
-// ============================================================
-function NotebookBackground() {
-  return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      <View style={{ flex: 1, backgroundColor: DOODLE.paper }}>
-        {/* Horizontal ruled lines */}
-        {Array.from({ length: Math.ceil(height / 32) }).map((_, i) => (
-          <View
-            key={`h-${i}`}
-            style={{
-              position: "absolute",
-              top: i * 32,
-              left: 0,
-              right: 0,
-              height: 1,
-              backgroundColor: DOODLE.paperLine,
-              opacity: 0.8,
-            }}
-          />
-        ))}
-        {/* Red margin line */}
-        <View
-          style={{
-            position: "absolute",
-            top: 0,
-            bottom: 0,
-            left: 40,
-            width: 1.5,
-            backgroundColor: DOODLE.paperMargin,
-            opacity: 0.7,
-          }}
-        />
-        {/* Left margin shading */}
-        <View
-          style={{
-            position: "absolute",
-            top: 0,
-            bottom: 0,
-            left: 0,
-            width: 40,
-            backgroundColor: "rgba(255,255,255,0.3)",
-          }}
-        />
-        {/* Paper edge highlight at top */}
-        <LinearGradient
-          colors={["rgba(0,0,0,0.04)", "rgba(0,0,0,0)"]}
-          style={{ position: "absolute", top: 0, left: 0, right: 0, height: 40 }}
-        />
-      </View>
-    </View>
-  );
-}
-
-// ============================================================
-// DOODLE CHARACTER — hand-drawn rocket
-// ============================================================
-function DoodleRocket({
-  size = 140,
-  bobbing = true,
-}: {
+  mood?: Mood;
   size?: number;
-  bobbing?: boolean;
 }) {
+  // Idle bobbing
   const bob = useSharedValue(0);
-  const wobble = useSharedValue(0);
+  // Eye blink
+  const blink = useSharedValue(1);
+  // Wave arm (for wave mood)
+  const wave = useSharedValue(0);
 
   useEffect(() => {
-    if (bobbing) {
-      bob.value = withRepeat(
-        withTiming(1, { duration: 2200, easing: Easing.inOut(Easing.ease) }),
-        -1,
-        true
-      );
-      wobble.value = withRepeat(
-        withTiming(1, { duration: 3400, easing: Easing.inOut(Easing.ease) }),
+    // Bobbing loop
+    bob.value = withRepeat(
+      withTiming(1, { duration: 2400, easing: Easing.inOut(Easing.ease) }),
+      -1,
+      true
+    );
+    // Blink loop
+    blink.value = withRepeat(
+      withSequence(
+        withTiming(0.1, { duration: 100 }),
+        withTiming(1, { duration: 200 }),
+        withDelay(2800, withTiming(1, { duration: 100 }))
+      ),
+      -1,
+      false
+    );
+    // Wave loop (only when mood === "wave")
+    if (mood === "wave") {
+      wave.value = withRepeat(
+        withTiming(1, { duration: 500, easing: Easing.inOut(Easing.ease) }),
         -1,
         true
       );
     }
-  }, []);
+  }, [mood]);
 
-  const anim = useAnimatedStyle(() => ({
+  const bodyAnim = useAnimatedStyle(() => ({
     transform: [
-      { translateY: bob.value * -8 },
-      { rotate: `${wobble.value * 4 - 2}deg` },
+      { translateY: interpolate(bob.value, [0, 1], [0, -10]) },
+      {
+        rotate:
+          mood === "excited"
+            ? `${interpolate(bob.value, [0, 1], [-4, 4])}deg`
+            : "0deg",
+      },
     ],
   }));
 
+  const eyeAnim = useAnimatedStyle(() => ({
+    transform: [{ scaleY: blink.value }],
+  }));
+
+  const waveAnim = useAnimatedStyle(() => ({
+    transform: [
+      { rotate: `${interpolate(wave.value, [0, 1], [0, -25])}deg` },
+    ],
+  }));
+
+  // Eye mood variants
+  const eyeShape =
+    mood === "happy"
+      ? "M 0 4 Q 4 0, 8 4" // smiling arc
+      : mood === "sleepy"
+      ? "M 0 4 L 8 4" // flat line
+      : null;
+
   return (
-    <Animated.View style={[anim, { width: size, height: size * 1.2 }]}>
-      {/* Rocket body — hand-drawn, wobbly */}
-      <View
-        style={{
-          position: "absolute",
-          bottom: size * 0.15,
-          left: size * 0.15,
-          width: size * 0.7,
-          height: size * 0.85,
-          backgroundColor: DOODLE.white,
-          borderWidth: 2.5,
-          borderColor: DOODLE.ink,
-          // wobbly asymmetric corners
-          borderTopLeftRadius: size * 0.35,
-          borderTopRightRadius: size * 0.3,
-          borderBottomLeftRadius: size * 0.15,
-          borderBottomRightRadius: size * 0.18,
-          // sketchy double line
-          transform: [{ rotate: "-2deg" }],
-        }}
-      >
-        {/* Window */}
+    <Animated.View style={[bodyAnim, { alignItems: "center" }]}>
+      <View style={{ width: size, height: size * 1.35, alignItems: "center" }}>
+        {/* ==== Flames (bottom) ==== */}
         <View
           style={{
             position: "absolute",
-            top: size * 0.12,
-            alignSelf: "center",
-            width: size * 0.25,
-            height: size * 0.25,
-            borderRadius: size * 0.13,
-            backgroundColor: DOODLE.blue,
-            borderWidth: 2.5,
-            borderColor: DOODLE.ink,
+            bottom: 0,
+            width: size * 0.35,
+            height: size * 0.4,
+            alignItems: "center",
+            justifyContent: "flex-end",
           }}
         >
-          {/* Window shine */}
+          <LinearGradient
+            colors={[PAL.accent, "#FFB84D", "rgba(255,184,77,0)"]}
+            style={{
+              width: size * 0.3,
+              height: size * 0.38,
+              borderTopLeftRadius: size * 0.15,
+              borderTopRightRadius: size * 0.15,
+              borderBottomLeftRadius: size * 0.04,
+              borderBottomRightRadius: size * 0.04,
+            }}
+          />
+        </View>
+
+        {/* ==== Fins (side wings) ==== */}
+        <View
+          style={{
+            position: "absolute",
+            bottom: size * 0.35,
+            left: size * 0.04,
+            width: size * 0.18,
+            height: size * 0.35,
+            backgroundColor: PAL.primaryDark,
+            borderTopLeftRadius: size * 0.1,
+            borderBottomLeftRadius: size * 0.18,
+            transform: [{ rotate: "-15deg" }],
+          }}
+        />
+        <View
+          style={{
+            position: "absolute",
+            bottom: size * 0.35,
+            right: size * 0.04,
+            width: size * 0.18,
+            height: size * 0.35,
+            backgroundColor: PAL.primaryDark,
+            borderTopRightRadius: size * 0.1,
+            borderBottomRightRadius: size * 0.18,
+            transform: [{ rotate: "15deg" }],
+          }}
+        />
+
+        {/* ==== Main body (rocket) ==== */}
+        <View
+          style={{
+            position: "absolute",
+            bottom: size * 0.18,
+            width: size * 0.7,
+            height: size * 0.9,
+            borderRadius: size * 0.35,
+            backgroundColor: PAL.primary,
+            borderWidth: 3,
+            borderColor: PAL.primaryDark,
+            overflow: "hidden",
+            shadowColor: PAL.primaryDark,
+            shadowOffset: { width: 0, height: 8 },
+            shadowOpacity: 0.3,
+            shadowRadius: 12,
+            elevation: 8,
+          }}
+        >
+          {/* Body highlight */}
           <View
             style={{
               position: "absolute",
-              top: 3,
-              left: 4,
-              width: size * 0.06,
-              height: size * 0.05,
-              borderRadius: size * 0.03,
-              backgroundColor: "rgba(255,255,255,0.7)",
+              top: size * 0.06,
+              left: size * 0.1,
+              width: size * 0.12,
+              height: size * 0.5,
+              borderRadius: size * 0.06,
+              backgroundColor: "rgba(255,255,255,0.4)",
             }}
           />
-        </View>
 
-        {/* Face */}
-        <View
-          style={{
-            position: "absolute",
-            top: size * 0.45,
-            left: size * 0.1,
-            right: size * 0.1,
-            alignItems: "center",
-          }}
-        >
-          {/* Eyes */}
-          <View style={{ flexDirection: "row", gap: size * 0.12 }}>
+          {/* ==== Face panel (white area) ==== */}
+          <View
+            style={{
+              position: "absolute",
+              top: size * 0.14,
+              left: size * 0.06,
+              right: size * 0.06,
+              bottom: size * 0.06,
+              borderRadius: size * 0.28,
+              backgroundColor: "#FFF5F0",
+              borderWidth: 2,
+              borderColor: PAL.primaryDark,
+            }}
+          >
+            {/* ==== Eyes ==== */}
             <View
               style={{
-                width: size * 0.06,
-                height: size * 0.09,
-                backgroundColor: DOODLE.ink,
-                borderRadius: size * 0.03,
+                flexDirection: "row",
+                justifyContent: "center",
+                gap: size * 0.14,
+                marginTop: size * 0.12,
+              }}
+            >
+              {[0, 1].map((i) => (
+                <Animated.View
+                  key={i}
+                  style={[
+                    eyeAnim,
+                    {
+                      width: size * 0.1,
+                      height: size * 0.13,
+                      borderRadius: size * 0.05,
+                      backgroundColor: "#2D2422",
+                      alignItems: "center",
+                      justifyContent: "flex-start",
+                      overflow: "hidden",
+                    },
+                  ]}
+                >
+                  {/* Eye sparkle */}
+                  <View
+                    style={{
+                      width: size * 0.04,
+                      height: size * 0.04,
+                      borderRadius: size * 0.02,
+                      backgroundColor: "#FFFFFF",
+                      marginTop: size * 0.02,
+                      marginLeft: size * 0.03,
+                    }}
+                  />
+                </Animated.View>
+              ))}
+            </View>
+
+            {/* ==== Cheeks (blush) ==== */}
+            <View
+              style={{
+                position: "absolute",
+                top: size * 0.32,
+                left: size * 0.1,
+                width: size * 0.09,
+                height: size * 0.05,
+                borderRadius: size * 0.025,
+                backgroundColor: "#FFB5B5",
+                opacity: 0.7,
               }}
             />
             <View
               style={{
+                position: "absolute",
+                top: size * 0.32,
+                right: size * 0.1,
+                width: size * 0.09,
+                height: size * 0.05,
+                borderRadius: size * 0.025,
+                backgroundColor: "#FFB5B5",
+                opacity: 0.7,
+              }}
+            />
+
+            {/* ==== Mouth ==== */}
+            <View
+              style={{
+                alignSelf: "center",
+                marginTop: size * 0.06,
+                width: mood === "excited" ? size * 0.16 : size * 0.12,
+                height: mood === "excited" ? size * 0.12 : size * 0.07,
+                borderBottomLeftRadius: size * 0.08,
+                borderBottomRightRadius: size * 0.08,
+                backgroundColor: "#2D2422",
+                overflow: "hidden",
+              }}
+            >
+              {/* Tongue */}
+              <View
+                style={{
+                  position: "absolute",
+                  bottom: 0,
+                  left: "25%",
+                  right: "25%",
+                  height: "45%",
+                  borderTopLeftRadius: size * 0.03,
+                  borderTopRightRadius: size * 0.03,
+                  backgroundColor: "#FF6B8A",
+                }}
+              />
+            </View>
+          </View>
+
+          {/* ==== Window (top of rocket) ==== */}
+          <View
+            style={{
+              position: "absolute",
+              top: -size * 0.06,
+              alignSelf: "center",
+              width: size * 0.22,
+              height: size * 0.22,
+              borderRadius: size * 0.11,
+              backgroundColor: PAL.secondary,
+              borderWidth: 3,
+              borderColor: PAL.secondaryDark,
+            }}
+          >
+            <View
+              style={{
+                position: "absolute",
+                top: size * 0.02,
+                left: size * 0.04,
                 width: size * 0.06,
-                height: size * 0.09,
-                backgroundColor: DOODLE.ink,
+                height: size * 0.06,
                 borderRadius: size * 0.03,
+                backgroundColor: "rgba(255,255,255,0.6)",
               }}
             />
           </View>
-          {/* Smile */}
-          <View
-            style={{
-              marginTop: size * 0.04,
-              width: size * 0.18,
-              height: size * 0.08,
-              borderBottomWidth: 2.5,
-              borderLeftWidth: 2.5,
-              borderRightWidth: 2.5,
-              borderColor: DOODLE.ink,
-              borderBottomLeftRadius: size * 0.09,
-              borderBottomRightRadius: size * 0.09,
-            }}
-          />
         </View>
-      </View>
 
-      {/* Left fin */}
-      <View
-        style={{
-          position: "absolute",
-          bottom: size * 0.2,
-          left: size * 0.04,
-          width: size * 0.18,
-          height: size * 0.28,
-          backgroundColor: DOODLE.red,
-          borderWidth: 2.5,
-          borderColor: DOODLE.ink,
-          borderTopLeftRadius: size * 0.1,
-          borderBottomLeftRadius: size * 0.15,
-          transform: [{ rotate: "-8deg" }],
-        }}
-      />
-      {/* Right fin */}
-      <View
-        style={{
-          position: "absolute",
-          bottom: size * 0.2,
-          right: size * 0.04,
-          width: size * 0.18,
-          height: size * 0.28,
-          backgroundColor: DOODLE.red,
-          borderWidth: 2.5,
-          borderColor: DOODLE.ink,
-          borderTopRightRadius: size * 0.1,
-          borderBottomRightRadius: size * 0.15,
-          transform: [{ rotate: "8deg" }],
-        }}
-      />
-
-      {/* Flames — simple wobbly shapes */}
-      <View
-        style={{
-          position: "absolute",
-          bottom: 0,
-          left: size * 0.35,
-          width: size * 0.3,
-          height: size * 0.22,
-          backgroundColor: DOODLE.orange,
-          borderWidth: 2.5,
-          borderColor: DOODLE.ink,
-          borderTopLeftRadius: size * 0.15,
-          borderTopRightRadius: size * 0.15,
-          borderBottomLeftRadius: size * 0.08,
-          borderBottomRightRadius: size * 0.08,
-        }}
-      >
-        <View
-          style={{
-            position: "absolute",
-            bottom: size * 0.02,
-            left: size * 0.06,
-            width: size * 0.18,
-            height: size * 0.12,
-            backgroundColor: DOODLE.yellow,
-            borderRadius: size * 0.09,
-          }}
-        />
+        {/* ==== Waving arm (right side) ==== */}
+        {mood === "wave" && (
+          <Animated.View
+            style={[
+              waveAnim,
+              {
+                position: "absolute",
+                top: size * 0.55,
+                right: -size * 0.04,
+                width: size * 0.14,
+                height: size * 0.28,
+                backgroundColor: PAL.primary,
+                borderWidth: 2,
+                borderColor: PAL.primaryDark,
+                borderRadius: size * 0.07,
+                transformOrigin: "bottom center",
+              },
+            ]}
+          />
+        )}
       </View>
     </Animated.View>
   );
 }
 
 // ============================================================
-// DOODLE STAR — decorative hand-drawn star
+// SPEECH BUBBLE — replaces formal copy
 // ============================================================
-function DoodleStar({
-  size = 20,
-  color = DOODLE.yellow,
-  rotation = 0,
+function SpeechBubble({
+  children,
+  tailDirection = "bottom",
   style,
 }: {
-  size?: number;
-  color?: string;
-  rotation?: number;
+  children: React.ReactNode;
+  tailDirection?: "bottom" | "left";
   style?: any;
 }) {
   return (
-    <View style={[{ transform: [{ rotate: `${rotation}deg` }] }, style]}>
-      <Text
+    <View style={[{ alignItems: "center" }, style]}>
+      <View
         style={{
-          fontSize: size,
-          color,
-          textShadowColor: DOODLE.ink,
-          textShadowOffset: { width: 0.8, height: 0.8 },
-          textShadowRadius: 0,
+          backgroundColor: PAL.bubble,
+          borderRadius: 20,
+          borderWidth: 2,
+          borderColor: PAL.bubbleBorder,
+          paddingHorizontal: 16,
+          paddingVertical: 12,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.1,
+          shadowRadius: 8,
+          elevation: 3,
         }}
       >
-        ✦
-      </Text>
+        {children}
+      </View>
+      {/* Tail */}
+      {tailDirection === "bottom" && (
+        <View
+          style={{
+            width: 0,
+            height: 0,
+            borderLeftWidth: 10,
+            borderRightWidth: 10,
+            borderTopWidth: 12,
+            borderLeftColor: "transparent",
+            borderRightColor: "transparent",
+            borderTopColor: PAL.bubble,
+            marginTop: -2,
+          }}
+        />
+      )}
     </View>
   );
 }
 
 // ============================================================
-// ARROW — hand-drawn arrow (a decorative pointing doodle)
+// CHARACTER BUTTON — Pip reacts on press
 // ============================================================
-function DoodleArrow({
+function CharButton({
+  label,
+  icon,
+  color = PAL.primary,
+  onPress,
+  onPressInChar,
+  onPressOutChar,
   style,
-  rotation = 0,
 }: {
+  label: string;
+  icon?: string;
+  color?: string;
+  onPress: () => void;
+  onPressInChar?: () => void;
+  onPressOutChar?: () => void;
   style?: any;
-  rotation?: number;
 }) {
+  const [pressed, setPressed] = useState(false);
+  const scale = useSharedValue(1);
+
+  useEffect(() => {
+    scale.value = withSpring(pressed ? 0.94 : 1, { damping: 12, stiffness: 300 });
+  }, [pressed]);
+
+  const anim = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }, { translateY: pressed ? 4 : 0 }],
+  }));
+
   return (
-    <View
-      style={[
-        { transform: [{ rotate: `${rotation}deg` }], flexDirection: "row" },
-        style,
-      ]}
-    >
-      <View
-        style={{
-          width: 30,
-          height: 2.5,
-          backgroundColor: DOODLE.ink,
-          marginTop: 6,
-          transform: [{ rotate: "-3deg" }],
+    <Animated.View style={[anim, style]}>
+      <Pressable
+        onPressIn={() => {
+          setPressed(true);
+          onPressInChar?.();
         }}
-      />
-      <View
-        style={{
-          width: 10,
-          height: 10,
-          borderTopWidth: 2.5,
-          borderRightWidth: 2.5,
-          borderColor: DOODLE.ink,
-          transform: [{ rotate: "45deg" }],
-          marginLeft: -6,
+        onPressOut={() => {
+          setPressed(false);
+          onPressOutChar?.();
         }}
-      />
-    </View>
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          onPress();
+        }}
+        style={{
+          borderRadius: 22,
+          backgroundColor: color,
+          borderWidth: 3,
+          borderColor: darken(color, 0.75),
+          paddingVertical: 18,
+          paddingHorizontal: 24,
+          alignItems: "center",
+          justifyContent: "center",
+          shadowColor: darken(color, 0.7),
+          shadowOffset: { width: 0, height: pressed ? 2 : 6 },
+          shadowOpacity: 0.4,
+          shadowRadius: pressed ? 4 : 10,
+          elevation: pressed ? 2 : 6,
+        }}
+      >
+        <Text
+          style={{
+            fontFamily: FONT.extrabold,
+            fontSize: 16,
+            color: "#FFFFFF",
+            letterSpacing: 0.4,
+            textShadowColor: darken(color, 0.6),
+            textShadowOffset: { width: 0, height: 1 },
+            textShadowRadius: 1,
+          }}
+        >
+          {icon ? `${icon}  ` : ""}
+          {label}
+        </Text>
+      </Pressable>
+    </Animated.View>
   );
+}
+
+// Utility
+function darken(hex: string, factor: number): string {
+  const h = hex.replace("#", "");
+  const r = Math.round(parseInt(h.substring(0, 2), 16) * factor);
+  const g = Math.round(parseInt(h.substring(2, 4), 16) * factor);
+  const b = Math.round(parseInt(h.substring(4, 6), 16) * factor);
+  return `rgb(${r},${g},${b})`;
 }
 
 // ============================================================
@@ -602,11 +531,91 @@ export default function Welcome() {
   const { t } = useTranslation();
   const { lang, setLang } = useLang();
   const { setMode } = useMode();
-  const [boop, setBoop] = useState(false);
+
+  // Character reacts to interactions
+  const [mood, setMood] = useState<Mood>("idle");
+  const [message, setMessage] = useState<string | null>(null);
+
+  const triggerMood = (m: Mood, msg?: string, duration = 1500) => {
+    setMood(m);
+    if (msg) setMessage(msg);
+    setTimeout(() => {
+      setMood("idle");
+      setMessage(null);
+    }, duration);
+  };
 
   return (
-    <View style={{ flex: 1, backgroundColor: DOODLE.paper }}>
-      <NotebookBackground />
+    <View style={{ flex: 1, backgroundColor: PAL.bg }}>
+      {/* ==== Sky background ==== */}
+      <LinearGradient
+        colors={[PAL.bgTop, PAL.bg, PAL.bgBottom]}
+        locations={[0, 0.5, 1]}
+        style={StyleSheet.absoluteFill}
+      />
+
+      {/* ==== Decorative clouds (soft, low-key) ==== */}
+      <View
+        pointerEvents="none"
+        style={[StyleSheet.absoluteFill, { opacity: 0.5 }]}
+      >
+        <View
+          style={{
+            position: "absolute",
+            top: 80,
+            left: -30,
+            width: 100,
+            height: 60,
+            borderRadius: 30,
+            backgroundColor: "#FFFFFF",
+          }}
+        />
+        <View
+          style={{
+            position: "absolute",
+            top: 100,
+            left: 10,
+            width: 80,
+            height: 60,
+            borderRadius: 30,
+            backgroundColor: "#FFFFFF",
+          }}
+        />
+        <View
+          style={{
+            position: "absolute",
+            top: 150,
+            right: -20,
+            width: 90,
+            height: 55,
+            borderRadius: 30,
+            backgroundColor: "#FFFFFF",
+          }}
+        />
+      </View>
+
+      {/* ==== Distant stars (subtle) ==== */}
+      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+        {[
+          { top: 60, left: 60 },
+          { top: 120, right: 80 },
+          { top: 200, left: 40 },
+          { top: 300, right: 100 },
+          { top: 400, left: 80 },
+        ].map((pos, i) => (
+          <Text
+            key={i}
+            style={{
+              position: "absolute",
+              fontSize: 12,
+              opacity: 0.4,
+              ...pos,
+            } as any}
+          >
+            ✨
+          </Text>
+        ))}
+      </View>
 
       <SafeAreaView style={{ flex: 1 }}>
         <View
@@ -616,68 +625,55 @@ export default function Welcome() {
             maxWidth: isTablet ? 720 : undefined,
             alignSelf: "center",
             width: "100%",
-            paddingTop: 16,
+            paddingTop: 8,
           }}
         >
-          {/* ==== TOP BAR — doodle logo + language sticky ==== */}
+          {/* ==== TOP BAR: Pip mini + language ==== */}
           <View
             style={{
               flexDirection: "row",
               justifyContent: "space-between",
               alignItems: "center",
-              marginBottom: 20,
+              marginBottom: 8,
             }}
           >
             <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-              {/* Circle doodle logo */}
+              {/* Tiny Pip avatar */}
               <View
                 style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 22,
-                  backgroundColor: DOODLE.yellow,
-                  borderWidth: 2.5,
-                  borderColor: DOODLE.ink,
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  backgroundColor: PAL.primary,
+                  borderWidth: 2,
+                  borderColor: PAL.primaryDark,
                   alignItems: "center",
                   justifyContent: "center",
-                  transform: [{ rotate: "-6deg" }],
-                  shadowColor: DOODLE.inkMuted,
-                  shadowOffset: { width: 3, height: 3 },
-                  shadowOpacity: 0.3,
-                  shadowRadius: 0,
-                  elevation: 2,
                 }}
               >
-                <Text style={{ fontSize: 20 }}>✏️</Text>
+                <Text style={{ fontSize: 18 }}>🚀</Text>
               </View>
               <Text
                 style={{
                   fontFamily: FONT.extrabold,
                   fontSize: 13,
-                  color: DOODLE.ink,
-                  letterSpacing: 1,
-                  transform: [{ rotate: "-1deg" }],
+                  color: PAL.text,
+                  letterSpacing: 1.5,
                 }}
               >
                 ONLINE SCHOOL
               </Text>
             </View>
 
-            {/* Language toggle — sticky note style */}
+            {/* Language — simple pill */}
             <View
               style={{
                 flexDirection: "row",
-                backgroundColor: DOODLE.white,
-                borderWidth: 2.5,
-                borderColor: DOODLE.ink,
-                borderRadius: 8,
+                backgroundColor: "rgba(255,255,255,0.7)",
+                borderRadius: 999,
                 padding: 3,
-                transform: [{ rotate: "1.5deg" }],
-                shadowColor: DOODLE.inkMuted,
-                shadowOffset: { width: 3, height: 3 },
-                shadowOpacity: 0.25,
-                shadowRadius: 0,
-                elevation: 2,
+                borderWidth: 2,
+                borderColor: PAL.bubbleBorder,
               }}
             >
               {(["my", "en"] as const).map((l) => {
@@ -688,19 +684,20 @@ export default function Welcome() {
                     onPress={() => {
                       Haptics.selectionAsync();
                       setLang(l);
+                      triggerMood("happy", l === "en" ? "Hello!" : "မင်္ဂလာပါ!");
                     }}
                     style={{
-                      paddingHorizontal: 12,
-                      paddingVertical: 5,
-                      borderRadius: 5,
-                      backgroundColor: active ? DOODLE.highlight : "transparent",
+                      paddingHorizontal: 14,
+                      paddingVertical: 6,
+                      borderRadius: 999,
+                      backgroundColor: active ? PAL.primary : "transparent",
                     }}
                   >
                     <Text
                       style={{
                         fontFamily: FONT.extrabold,
                         fontSize: 12,
-                        color: active ? DOODLE.ink : DOODLE.inkMuted,
+                        color: active ? "#FFFFFF" : PAL.textMuted,
                       }}
                     >
                       {l.toUpperCase()}
@@ -711,228 +708,122 @@ export default function Welcome() {
             </View>
           </View>
 
-          {/* ==== HERO HEADLINE — handwritten feel ==== */}
+          {/* ==== HEADLINE (compact, above character) ==== */}
           <Animated.View
             entering={FadeInDown.delay(100).springify()}
-            style={{ marginBottom: 12 }}
+            style={{ marginTop: 16, marginBottom: 8 }}
           >
-            <View style={{ transform: [{ rotate: "-1deg" }] }}>
-              <Text
-                style={{
-                  fontFamily: FONT.extrabold,
-                  fontSize: isTablet ? 52 : 36,
-                  lineHeight: isTablet ? 58 : 44,
-                  color: DOODLE.ink,
-                  letterSpacing: -0.5,
-                }}
-              >
-                {t("welcome.hello")}
-              </Text>
-            </View>
-            <View style={{ transform: [{ rotate: "0.8deg" }], marginTop: 2 }}>
-              <Text
-                style={{
-                  fontFamily: FONT.extrabold,
-                  fontSize: isTablet ? 52 : 36,
-                  lineHeight: isTablet ? 58 : 44,
-                  color: DOODLE.red,
-                  letterSpacing: -0.5,
-                }}
-              >
+            <Text
+              style={{
+                fontFamily: FONT.extrabold,
+                fontSize: isTablet ? 44 : 32,
+                lineHeight: isTablet ? 50 : 38,
+                color: PAL.text,
+                letterSpacing: -0.8,
+              }}
+            >
+              {t("welcome.hello")}{" "}
+              <Text style={{ color: PAL.primary }}>
                 {t("welcome.little")}
               </Text>
-              {/* Hand-drawn underline */}
-              <View
-                style={{
-                  height: 3,
-                  backgroundColor: DOODLE.red,
-                  marginTop: 2,
-                  width: "70%",
-                  borderRadius: 2,
-                  transform: [{ rotate: "-0.5deg" }],
-                }}
-              />
-            </View>
-            <View style={{ transform: [{ rotate: "-1.2deg" }], marginTop: 2 }}>
-              <Text
-                style={{
-                  fontFamily: FONT.extrabold,
-                  fontSize: isTablet ? 52 : 36,
-                  lineHeight: isTablet ? 58 : 44,
-                  color: DOODLE.purple,
-                  letterSpacing: -0.5,
-                }}
-              >
-                {t("welcome.explorers")}
-              </Text>
-            </View>
+            </Text>
+            <Text
+              style={{
+                fontFamily: FONT.extrabold,
+                fontSize: isTablet ? 44 : 32,
+                lineHeight: isTablet ? 50 : 38,
+                color: PAL.purple,
+                letterSpacing: -0.8,
+              }}
+            >
+              {t("welcome.explorers")}
+            </Text>
           </Animated.View>
 
-          {/* ==== CHARACTER + SPEECH ==== */}
+          {/* ==== CHARACTER ZONE — Pip takes center stage ==== */}
           <View
             style={{
               flex: 1,
               alignItems: "center",
               justifyContent: "center",
-              minHeight: isTablet ? 280 : 230,
-              marginTop: 8,
+              minHeight: isTablet ? 320 : 260,
             }}
           >
-            {/* Speech bubble — hand-drawn irregular shape */}
-            <Animated.View entering={FadeIn.delay(300)}>
-              <View style={{ transform: [{ rotate: "-1.5deg" }], marginBottom: 12 }}>
-                <View
+            {/* Speech bubble above Pip */}
+            <Animated.View
+              entering={FadeIn.delay(400)}
+              style={{ minHeight: 60, justifyContent: "flex-end" }}
+            >
+              <SpeechBubble>
+                <Text
                   style={{
-                    backgroundColor: DOODLE.white,
-                    borderWidth: 2.5,
-                    borderColor: DOODLE.ink,
-                    borderRadius: 20,
-                    paddingHorizontal: 18,
-                    paddingVertical: 12,
-                    maxWidth: 260,
-                    // asymmetric to feel hand-drawn
-                    borderTopLeftRadius: 24,
-                    borderTopRightRadius: 18,
-                    borderBottomLeftRadius: 22,
-                    borderBottomRightRadius: 16,
+                    fontFamily: FONT.extrabold,
+                    fontSize: 14,
+                    color: PAL.text,
+                    textAlign: "center",
                   }}
                 >
-                  <Text
-                    style={{
-                      fontFamily: FONT.semibold,
-                      fontSize: 14,
-                      color: DOODLE.ink,
-                      lineHeight: 20,
-                      textAlign: "center",
-                    }}
-                  >
-                    {t("welcome.tagline")}
-                  </Text>
-                </View>
-                {/* Tail */}
-                <View
-                  style={{
-                    position: "absolute",
-                    bottom: -10,
-                    left: 30,
-                    width: 0,
-                    height: 0,
-                    borderLeftWidth: 8,
-                    borderRightWidth: 8,
-                    borderTopWidth: 12,
-                    borderLeftColor: "transparent",
-                    borderRightColor: "transparent",
-                    borderTopColor: DOODLE.ink,
-                    transform: [{ rotate: "-10deg" }],
-                  }}
-                />
-                <View
-                  style={{
-                    position: "absolute",
-                    bottom: -6,
-                    left: 31,
-                    width: 0,
-                    height: 0,
-                    borderLeftWidth: 7,
-                    borderRightWidth: 7,
-                    borderTopWidth: 10,
-                    borderLeftColor: "transparent",
-                    borderRightColor: "transparent",
-                    borderTopColor: DOODLE.white,
-                    transform: [{ rotate: "-10deg" }],
-                  }}
-                />
-              </View>
+                  {message || t("welcome.tagline")}
+                </Text>
+              </SpeechBubble>
             </Animated.View>
 
-            {/* Rocket — pressable, wobbles on tap */}
+            {/* Pip */}
             <Pressable
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                setBoop(!boop);
+                triggerMood("excited", "Yay! Let's learn! 🎉", 1800);
               }}
             >
-              <DoodleRocket size={isTablet ? 160 : 130} />
+              <Pip mood={mood} size={isTablet ? 200 : 160} />
             </Pressable>
           </View>
 
-          {/* ==== BUTTONS — each with unique doodle rotation ==== */}
-          <Animated.View
-            entering={FadeInDown.delay(400).springify()}
-            style={{ marginTop: 12 }}
-          >
-            <DoodleButton
+          {/* ==== BUTTONS — each triggers Pip reaction ==== */}
+          <Animated.View entering={FadeInDown.delay(500).springify()}>
+            <CharButton
               label={t("welcome.playGuest")}
               icon="🚀"
-              color={DOODLE.yellow}
-              textColor={DOODLE.ink}
-              rotation={1.2}
-              size="lg"
+              color={PAL.primary}
               onPress={() => router.push("/(student)/grades")}
-              style={{ marginBottom: 14 }}
+              onPressInChar={() => triggerMood("excited", "Blast off! 🚀", 1200)}
+              onPressOutChar={() => setMood("idle")}
+              style={{ marginBottom: 12 }}
             />
-            <DoodleButton
+            <CharButton
               label={t("welcome.login")}
               icon="🔑"
-              color={DOODLE.teal}
-              textColor={DOODLE.white}
-              rotation={-1}
+              color={PAL.secondary}
               onPress={() => router.push("/(auth)/login")}
-              style={{ marginBottom: 14 }}
+              onPressInChar={() => triggerMood("happy", "Welcome back! 👋", 1200)}
+              onPressOutChar={() => setMood("idle")}
+              style={{ marginBottom: 12 }}
             />
-            <DoodleButton
+            <CharButton
               label={t("welcome.teacher")}
               icon="👩‍🏫"
-              color={DOODLE.pink}
-              textColor={DOODLE.ink}
-              rotation={0.7}
+              color={PAL.purple}
               onPress={() => {
                 setMode("teacher");
                 router.push("/(teacher)/dashboard");
               }}
+              onPressInChar={() => triggerMood("wave", "Hi teacher! 👋", 1600)}
+              onPressOutChar={() => setMood("idle")}
             />
           </Animated.View>
 
-          {/* ==== Footer — sticky note ==== */}
-          <View
+          <Text
             style={{
-              alignItems: "center",
+              textAlign: "center",
+              fontFamily: FONT.semibold,
+              fontSize: 11,
+              color: PAL.textMuted,
               marginTop: 16,
-              marginBottom: 8,
+              marginBottom: 6,
             }}
           >
-            <StickyNote rotation={-1.5}>
-              <Text
-                style={{
-                  fontFamily: FONT.semibold,
-                  fontSize: 11,
-                  color: DOODLE.ink,
-                }}
-              >
-                {t("welcome.help")}  ·  v1.0.0
-              </Text>
-            </StickyNote>
-          </View>
-
-          {/* ==== Decorative doodles ==== */}
-          <DoodleStar
-            size={16}
-            color={DOODLE.yellow}
-            rotation={15}
-            style={{ position: "absolute", top: 100, right: 40 }}
-          />
-          <DoodleStar
-            size={12}
-            color={DOODLE.pink}
-            rotation={-20}
-            style={{ position: "absolute", top: 220, left: 20 }}
-          />
-          <DoodleStar
-            size={10}
-            color={DOODLE.teal}
-            rotation={40}
-            style={{ position: "absolute", top: 340, right: 60 }}
-          />
+            {t("welcome.help")}  ·  v1.0.0
+          </Text>
         </View>
       </SafeAreaView>
     </View>
