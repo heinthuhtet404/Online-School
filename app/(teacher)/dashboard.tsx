@@ -24,47 +24,47 @@ const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
 
 // ============================================================
-// PALETTE — matches all other screens
+// TEACHER PALETTE
 // ============================================================
 const PAL = {
-  bg: "#FFF8F0",
-  bgTop: "#FFE8D6",
-  bgBottom: "#E8F4FF",
-  primary: "#FF6B6B",
-  primaryDark: "#E05050",
-  secondary: "#4ECDC4",
-  secondaryDark: "#3BA89F",
-  accent: "#FFD93D",
-  accentDark: "#E5C020",
-  text: "#2D2422",
-  textMuted: "#7A6A63",
-  divider: "#EDE3D8",
+  bg: "#F0F5F8",
+  bgTop: "#D4E8E6",
+  bgBottom: "#EDE9F5",
+  primary: "#2C7A7B",
+  primaryDark: "#1E5C5D",
+  accent: "#9F7AEA",
+  accentDark: "#7C5CC7",
+  text: "#1E2A38",
+  textMuted: "#5C6B7A",
+  divider: "#D8E2E8",
+  success: "#2C7A7B",
+  danger: "#C2402B",
 };
 
 // ============================================================
-// GRADES
+// GRADES — teacher colors
 // ============================================================
 const GRADES = [
-  { id: "kg", label: "KG", emoji: "🌱", color: "#9DD9C5", darkColor: "#7EC4AE", students: 24, reaction: "KG class — the little ones! 🌱" },
-  { id: "g1", label: "Grade 1", emoji: "🐣", color: "#FFD93D", darkColor: "#E5C020", students: 28, reaction: "Grade 1 — so eager! 🐣" },
-  { id: "g2", label: "Grade 2", emoji: "🦊", color: "#F4A6C0", darkColor: "#E88AA8", students: 26, reaction: "Grade 2 — clever foxes! 🦊" },
-  { id: "g3", label: "Grade 3", emoji: "🐬", color: "#4ECDC4", darkColor: "#3BA89F", students: 30, reaction: "Grade 3 — diving deep! 🐬" },
-  { id: "g4", label: "Grade 4", emoji: "🦉", color: "#FF6B6B", darkColor: "#E05050", students: 25, reaction: "Grade 4 — wise owls! 🦉" },
-  { id: "g5", label: "Grade 5", emoji: "🚀", color: "#F4A6C0", darkColor: "#E88AA8", students: 22, reaction: "Grade 5 — ready to launch! 🚀" },
-  { id: "g6", label: "Grade 6", emoji: "🏆", color: "#FFD93D", darkColor: "#E5C020", students: 27, reaction: "Grade 6 — final year! 🏆" },
+  { id: "kg", label: "KG", emoji: "🌱", color: "#A8D5BA", darkColor: "#7BB89A", students: 24, reaction: "KG class — the little ones! 🌱" },
+  { id: "g1", label: "Grade 1", emoji: "🐣", color: "#E8C547", darkColor: "#C9A42F", students: 28, reaction: "Grade 1 — so eager! 🐣" },
+  { id: "g2", label: "Grade 2", emoji: "🦊", color: "#E8A8A8", darkColor: "#C97B7B", students: 26, reaction: "Grade 2 — clever foxes! 🦊" },
+  { id: "g3", label: "Grade 3", emoji: "🐬", color: "#7BC4C4", darkColor: "#5CA3A3", students: 30, reaction: "Grade 3 — diving deep! 🐬" },
+  { id: "g4", label: "Grade 4", emoji: "🦉", color: "#B8A4D9", darkColor: "#9880B8", students: 25, reaction: "Grade 4 — wise owls! 🦉" },
+  { id: "g5", label: "Grade 5", emoji: "🚀", color: "#9FC4E8", darkColor: "#7BA3C9", students: 22, reaction: "Grade 5 — ready to launch! 🚀" },
+  { id: "g6", label: "Grade 6", emoji: "🏆", color: "#E8D47B", darkColor: "#C9B55C", students: 27, reaction: "Grade 6 — final year! 🏆" },
 ];
 
 type Mood = "idle" | "happy" | "excited" | "thinking" | "wave";
 
 // ============================================================
-// PIP — with teacher hat
+// PIP — TEAL with teacher hat
 // ============================================================
 function Pip({
   mood = "idle",
   size = 80,
   prop,
   flameTop = PAL.accent,
-  flameBottom = "#FFB84D",
+  flameBottom = PAL.accentDark,
   teacher = false,
 }: {
   mood?: Mood;
@@ -123,7 +123,6 @@ function Pip({
 
   return (
     <Animated.View style={[bodyAnim, { width: size, height: size * 1.3 }]}>
-      {/* Teacher hat — sits on top */}
       {teacher && (
         <View
           style={{
@@ -135,29 +134,26 @@ function Pip({
             zIndex: 10,
           }}
         >
-          {/* Hat top */}
           <View
             style={{
               width: size * 0.34,
               height: size * 0.26,
-              backgroundColor: "#2D2422",
+              backgroundColor: "#1E2A38",
               borderTopLeftRadius: size * 0.17,
               borderTopRightRadius: size * 0.17,
               borderWidth: 2,
-              borderColor: "#1A1512",
+              borderColor: "#0F1923",
             }}
           />
-          {/* Hat brim */}
           <View
             style={{
               width: size * 0.44,
               height: size * 0.06,
-              backgroundColor: "#2D2422",
+              backgroundColor: "#1E2A38",
               borderRadius: size * 0.03,
               marginTop: -2,
             }}
           />
-          {/* Tassel */}
           <View
             style={{
               position: "absolute",
@@ -182,7 +178,6 @@ function Pip({
         </View>
       )}
 
-      {/* Flame */}
       <View
         style={{
           position: "absolute",
@@ -194,7 +189,7 @@ function Pip({
         }}
       >
         <LinearGradient
-          colors={[flameTop, flameBottom, "rgba(255,184,77,0)"]}
+          colors={[flameTop, flameBottom, "rgba(159,122,234,0)"]}
           locations={[0, 0.5, 1]}
           style={{
             width: size * 0.28,
@@ -207,7 +202,6 @@ function Pip({
         />
       </View>
 
-      {/* Fins */}
       <View
         style={{
           position: "absolute",
@@ -235,7 +229,6 @@ function Pip({
         }}
       />
 
-      {/* Body */}
       <View
         style={{
           position: "absolute",
@@ -249,7 +242,6 @@ function Pip({
           borderColor: PAL.primaryDark,
         }}
       >
-        {/* Face */}
         <View
           style={{
             position: "absolute",
@@ -258,7 +250,7 @@ function Pip({
             right: size * 0.05,
             bottom: size * 0.05,
             borderRadius: size * 0.25,
-            backgroundColor: "#FFF5F0",
+            backgroundColor: "#F0F5F8",
             borderWidth: 2,
             borderColor: PAL.primaryDark,
           }}
@@ -280,7 +272,7 @@ function Pip({
                     width: size * 0.08,
                     height: size * 0.11,
                     borderRadius: size * 0.04,
-                    backgroundColor: "#2D2422",
+                    backgroundColor: "#1E2A38",
                     alignItems: "center",
                     justifyContent: "flex-start",
                   },
@@ -307,7 +299,7 @@ function Pip({
               height: mood === "excited" ? size * 0.09 : size * 0.05,
               borderBottomLeftRadius: size * 0.06,
               borderBottomRightRadius: size * 0.06,
-              backgroundColor: "#2D2422",
+              backgroundColor: "#1E2A38",
               overflow: "hidden",
             }}
           >
@@ -318,14 +310,13 @@ function Pip({
                 left: "25%",
                 right: "25%",
                 height: "45%",
-                backgroundColor: "#FF6B8A",
+                backgroundColor: PAL.accent,
                 borderTopLeftRadius: size * 0.02,
                 borderTopRightRadius: size * 0.02,
               }}
             />
           </View>
         </View>
-        {/* Window */}
         <View
           style={{
             position: "absolute",
@@ -334,14 +325,13 @@ function Pip({
             width: size * 0.2,
             height: size * 0.2,
             borderRadius: size * 0.1,
-            backgroundColor: PAL.secondary,
+            backgroundColor: PAL.accent,
             borderWidth: 2,
-            borderColor: PAL.secondaryDark,
+            borderColor: PAL.accentDark,
           }}
         />
       </View>
 
-      {/* Prop */}
       {prop && (
         <Animated.View
           style={[
@@ -369,7 +359,7 @@ function Pip({
 }
 
 // ============================================================
-// GRADE ROW — minimal list row
+// GRADE ROW
 // ============================================================
 function GradeRow({
   item,
@@ -537,7 +527,7 @@ export default function TeacherDashboard() {
   }, []);
 
   const flameTop = activeGrade ? `${activeGrade.color}99` : PAL.accent;
-  const flameBottom = activeGrade?.color ?? "#FFB84D";
+  const flameBottom = activeGrade?.color ?? PAL.accentDark;
 
   return (
     <View style={{ flex: 1, backgroundColor: PAL.bg }}>
@@ -556,7 +546,6 @@ export default function TeacherDashboard() {
             width: "100%",
           }}
         >
-          {/* Top bar */}
           <View
             style={{
               marginTop: 12,
@@ -570,13 +559,12 @@ export default function TeacherDashboard() {
                 fontFamily: FONT.extrabold,
                 fontSize: 12,
                 letterSpacing: 2,
-                color: PAL.textMuted,
+                color: PAL.primary,
               }}
             >
               TEACHER MODE
             </Text>
 
-            {/* Switch to Student — minimal pill */}
             <Pressable
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -607,7 +595,6 @@ export default function TeacherDashboard() {
             </Pressable>
           </View>
 
-          {/* Pip + message */}
           <View
             style={{
               flexDirection: "row",
@@ -632,10 +619,7 @@ export default function TeacherDashboard() {
                 teacher
               />
             </Pressable>
-            <Animated.View
-              entering={FadeIn.delay(200)}
-              style={{ flex: 1 }}
-            >
+            <Animated.View entering={FadeIn.delay(200)} style={{ flex: 1 }}>
               <Text
                 style={{
                   fontFamily: FONT.semibold,
@@ -649,7 +633,6 @@ export default function TeacherDashboard() {
             </Animated.View>
           </View>
 
-          {/* Title */}
           <Animated.View entering={FadeInDown.delay(100).springify()}>
             <Text
               style={{
@@ -673,7 +656,6 @@ export default function TeacherDashboard() {
             }}
           />
 
-          {/* Grade list */}
           <ScrollView
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: 40 }}

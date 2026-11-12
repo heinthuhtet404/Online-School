@@ -22,47 +22,36 @@ import { FONT } from "@/lib/design";
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
 
-// ============================================================
-// PALETTE
-// ============================================================
 const PAL = {
-  bg: "#FFF8F0",
-  bgTop: "#FFE8D6",
-  bgBottom: "#E8F4FF",
-  primary: "#FF6B6B",
-  primaryDark: "#E05050",
-  secondary: "#4ECDC4",
-  secondaryDark: "#3BA89F",
-  accent: "#FFD93D",
-  accentDark: "#E5C020",
-  text: "#2D2422",
-  textMuted: "#7A6A63",
-  divider: "#EDE3D8",
+  bg: "#F0F5F8",
+  bgTop: "#D4E8E6",
+  bgBottom: "#EDE9F5",
+  primary: "#2C7A7B",
+  primaryDark: "#1E5C5D",
+  accent: "#9F7AEA",
+  accentDark: "#7C5CC7",
+  text: "#1E2A38",
+  textMuted: "#5C6B7A",
+  divider: "#D8E2E8",
 };
 
-// ============================================================
-// SUBJECTS
-// ============================================================
 const SUBJECTS = [
-  { id: "myanmar", name: "မြန်မာစာ", emoji: "📖", color: "#F4A6C0", darkColor: "#E88AA8", lessonCount: 8, reaction: "မြန်မာစာ — စာပေ လေ့လာကြမယ်! 📖" },
-  { id: "english", name: "အင်္ဂလိပ်", emoji: "🔤", color: "#FF6B6B", darkColor: "#E05050", lessonCount: 12, reaction: "English — let's read and write! 🔤" },
-  { id: "math", name: "သင်္ချာ", emoji: "🔢", color: "#4ECDC4", darkColor: "#3BA89F", lessonCount: 10, reaction: "သင်္ချာ — ဂဏန်းတွေ ရေတွက်ကြမယ်! 🔢" },
-  { id: "science", name: "သိပ္ပံ", emoji: "🔬", color: "#9DD9C5", darkColor: "#7EC4AE", lessonCount: 6, reaction: "သိပ္ပံ — စမ်းသပ်မှုတွေ လုပ်ကြမယ်! 🔬" },
-  { id: "history", name: "သမိုင်း", emoji: "🏛️", color: "#FFD93D", darkColor: "#E5C020", lessonCount: 5, reaction: "သမိုင်း — အတိတ်ကာလကို ပြန်သွားကြမယ်! 🏛️" },
-  { id: "geography", name: "ပထဝီ", emoji: "🌍", color: "#9FE870", darkColor: "#7EC450", lessonCount: 7, reaction: "ပထဝီ — ကမ္ဘာကို လေ့လာကြမယ်! 🌍" },
+  { id: "myanmar", name: "မြန်မာစာ", emoji: "📖", color: "#E8A8A8", darkColor: "#C97B7B", lessonCount: 8, reaction: "မြန်မာစာ — စာပေ လေ့လာကြမယ်! 📖" },
+  { id: "english", name: "အင်္ဂလိပ်", emoji: "🔤", color: "#7BC4C4", darkColor: "#5CA3A3", lessonCount: 12, reaction: "English — let's read and write! 🔤" },
+  { id: "math", name: "သင်္ချာ", emoji: "🔢", color: "#9FC4E8", darkColor: "#7BA3C9", lessonCount: 10, reaction: "သင်္ချာ — ဂဏန်းတွေ ရေတွက်ကြမယ်! 🔢" },
+  { id: "science", name: "သိပ္ပံ", emoji: "🔬", color: "#A8D5BA", darkColor: "#7BB89A", lessonCount: 6, reaction: "သိပ္ပံ — စမ်းသပ်မှုတွေ လုပ်ကြမယ်! 🔬" },
+  { id: "history", name: "သမိုင်း", emoji: "🏛️", color: "#E8D47B", darkColor: "#C9B55C", lessonCount: 5, reaction: "သမိုင်း — အတိတ်ကာလကို ပြန်သွားကြမယ်! 🏛️" },
+  { id: "geography", name: "ပထဝီ", emoji: "🌍", color: "#B8A4D9", darkColor: "#9880B8", lessonCount: 7, reaction: "ပထဝီ — ကမ္ဘာကို လေ့လာကြမယ်! 🌍" },
 ];
 
 type Mood = "idle" | "happy" | "excited" | "thinking" | "wave";
 
-// ============================================================
-// PIP — with teacher hat
-// ============================================================
 function Pip({
   mood = "idle",
   size = 80,
   prop,
   flameTop = PAL.accent,
-  flameBottom = "#FFB84D",
+  flameBottom = PAL.accentDark,
   teacher = false,
 }: {
   mood?: Mood;
@@ -113,9 +102,7 @@ function Pip({
       },
     ],
   }));
-  const eyeAnim = useAnimatedStyle(() => ({
-    transform: [{ scaleY: blink.value }],
-  }));
+  const eyeAnim = useAnimatedStyle(() => ({ transform: [{ scaleY: blink.value }] }));
   const propAnim = useAnimatedStyle(() => ({
     transform: [{ scale: propScale.value }],
     opacity: propScale.value,
@@ -123,7 +110,6 @@ function Pip({
 
   return (
     <Animated.View style={[bodyAnim, { width: size, height: size * 1.3 }]}>
-      {/* Teacher hat */}
       {teacher && (
         <View
           style={{
@@ -139,18 +125,18 @@ function Pip({
             style={{
               width: size * 0.34,
               height: size * 0.26,
-              backgroundColor: "#2D2422",
+              backgroundColor: "#1E2A38",
               borderTopLeftRadius: size * 0.17,
               borderTopRightRadius: size * 0.17,
               borderWidth: 2,
-              borderColor: "#1A1512",
+              borderColor: "#0F1923",
             }}
           />
           <View
             style={{
               width: size * 0.44,
               height: size * 0.06,
-              backgroundColor: "#2D2422",
+              backgroundColor: "#1E2A38",
               borderRadius: size * 0.03,
               marginTop: -2,
             }}
@@ -179,7 +165,6 @@ function Pip({
         </View>
       )}
 
-      {/* Flame */}
       <View
         style={{
           position: "absolute",
@@ -191,7 +176,7 @@ function Pip({
         }}
       >
         <LinearGradient
-          colors={[flameTop, flameBottom, "rgba(255,184,77,0)"]}
+          colors={[flameTop, flameBottom, "rgba(159,122,234,0)"]}
           locations={[0, 0.5, 1]}
           style={{
             width: size * 0.28,
@@ -204,7 +189,6 @@ function Pip({
         />
       </View>
 
-      {/* Fins */}
       <View
         style={{
           position: "absolute",
@@ -232,7 +216,6 @@ function Pip({
         }}
       />
 
-      {/* Body */}
       <View
         style={{
           position: "absolute",
@@ -246,7 +229,6 @@ function Pip({
           borderColor: PAL.primaryDark,
         }}
       >
-        {/* Face */}
         <View
           style={{
             position: "absolute",
@@ -255,7 +237,7 @@ function Pip({
             right: size * 0.05,
             bottom: size * 0.05,
             borderRadius: size * 0.25,
-            backgroundColor: "#FFF5F0",
+            backgroundColor: "#F0F5F8",
             borderWidth: 2,
             borderColor: PAL.primaryDark,
           }}
@@ -277,7 +259,7 @@ function Pip({
                     width: size * 0.08,
                     height: size * 0.11,
                     borderRadius: size * 0.04,
-                    backgroundColor: "#2D2422",
+                    backgroundColor: "#1E2A38",
                     alignItems: "center",
                     justifyContent: "flex-start",
                   },
@@ -304,7 +286,7 @@ function Pip({
               height: mood === "excited" ? size * 0.09 : size * 0.05,
               borderBottomLeftRadius: size * 0.06,
               borderBottomRightRadius: size * 0.06,
-              backgroundColor: "#2D2422",
+              backgroundColor: "#1E2A38",
               overflow: "hidden",
             }}
           >
@@ -315,14 +297,13 @@ function Pip({
                 left: "25%",
                 right: "25%",
                 height: "45%",
-                backgroundColor: "#FF6B8A",
+                backgroundColor: PAL.accent,
                 borderTopLeftRadius: size * 0.02,
                 borderTopRightRadius: size * 0.02,
               }}
             />
           </View>
         </View>
-        {/* Window */}
         <View
           style={{
             position: "absolute",
@@ -331,14 +312,13 @@ function Pip({
             width: size * 0.2,
             height: size * 0.2,
             borderRadius: size * 0.1,
-            backgroundColor: PAL.secondary,
+            backgroundColor: PAL.accent,
             borderWidth: 2,
-            borderColor: PAL.secondaryDark,
+            borderColor: PAL.accentDark,
           }}
         />
       </View>
 
-      {/* Prop */}
       {prop && (
         <Animated.View
           style={[
@@ -365,9 +345,6 @@ function Pip({
   );
 }
 
-// ============================================================
-// SUBJECT ROW — minimal list row
-// ============================================================
 function SubjectRow({
   item,
   index,
@@ -503,9 +480,6 @@ function SubjectRow({
   );
 }
 
-// ============================================================
-// MAIN SCREEN
-// ============================================================
 export default function TeacherSubjects() {
   const router = useRouter();
   const { grade } = useLocalSearchParams<{ grade: string }>();
@@ -536,7 +510,7 @@ export default function TeacherSubjects() {
   }, []);
 
   const flameTop = activeSubject ? `${activeSubject.color}99` : PAL.accent;
-  const flameBottom = activeSubject?.color ?? "#FFB84D";
+  const flameBottom = activeSubject?.color ?? PAL.accentDark;
 
   return (
     <View style={{ flex: 1, backgroundColor: PAL.bg }}>
@@ -555,7 +529,6 @@ export default function TeacherSubjects() {
             width: "100%",
           }}
         >
-          {/* Back */}
           <Pressable
             onPress={() => {
               Haptics.selectionAsync();
@@ -572,7 +545,6 @@ export default function TeacherSubjects() {
             <Text style={{ fontSize: 22, color: PAL.text }}>←</Text>
           </Pressable>
 
-          {/* Pip + message */}
           <View
             style={{
               flexDirection: "row",
@@ -611,13 +583,12 @@ export default function TeacherSubjects() {
             </Animated.View>
           </View>
 
-          {/* Grade badge */}
           <Animated.View entering={FadeInDown.delay(100).springify()}>
             <Text
               style={{
                 fontFamily: FONT.extrabold,
                 fontSize: 11,
-                color: PAL.textMuted,
+                color: PAL.primary,
                 letterSpacing: 2,
                 marginBottom: 6,
               }}
@@ -656,7 +627,6 @@ export default function TeacherSubjects() {
             }}
           />
 
-          {/* Subject list */}
           <ScrollView
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: 40 }}

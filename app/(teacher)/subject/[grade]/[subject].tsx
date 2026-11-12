@@ -23,52 +23,41 @@ import { LessonsStore, Lesson } from "@/lib/lessons-store";
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
 
-// ============================================================
-// PALETTE
-// ============================================================
 const PAL = {
-  bg: "#FFF8F0",
-  bgTop: "#FFE8D6",
-  bgBottom: "#E8F4FF",
-  primary: "#FF6B6B",
-  primaryDark: "#E05050",
-  secondary: "#4ECDC4",
-  secondaryDark: "#3BA89F",
-  accent: "#FFD93D",
-  accentDark: "#E5C020",
-  text: "#2D2422",
-  textMuted: "#7A6A63",
-  divider: "#EDE3D8",
+  bg: "#F0F5F8",
+  bgTop: "#D4E8E6",
+  bgBottom: "#EDE9F5",
+  primary: "#2C7A7B",
+  primaryDark: "#1E5C5D",
+  accent: "#9F7AEA",
+  accentDark: "#7C5CC7",
+  text: "#1E2A38",
+  textMuted: "#5C6B7A",
+  divider: "#D8E2E8",
+  success: "#2C7A7B",
   danger: "#C2402B",
-  dangerBg: "#FFE0E6",
 };
 
-// ============================================================
-// SUBJECT META
-// ============================================================
 const SUBJECT_META: Record<
   string,
   { name: string; emoji: string; color: string; darkColor: string }
 > = {
-  myanmar: { name: "မြန်မာစာ", emoji: "📖", color: "#F4A6C0", darkColor: "#E88AA8" },
-  english: { name: "အင်္ဂလိပ်", emoji: "🔤", color: "#FF6B6B", darkColor: "#E05050" },
-  math: { name: "သင်္ချာ", emoji: "🔢", color: "#4ECDC4", darkColor: "#3BA89F" },
-  science: { name: "သိပ္ပံ", emoji: "🔬", color: "#9DD9C5", darkColor: "#7EC4AE" },
-  history: { name: "သမိုင်း", emoji: "🏛️", color: "#FFD93D", darkColor: "#E5C020" },
-  geography: { name: "ပထဝီ", emoji: "🌍", color: "#9FE870", darkColor: "#7EC450" },
+  myanmar: { name: "မြန်မာစာ", emoji: "📖", color: "#E8A8A8", darkColor: "#C97B7B" },
+  english: { name: "အင်္ဂလိပ်", emoji: "🔤", color: "#7BC4C4", darkColor: "#5CA3A3" },
+  math: { name: "သင်္ချာ", emoji: "🔢", color: "#9FC4E8", darkColor: "#7BA3C9" },
+  science: { name: "သိပ္ပံ", emoji: "🔬", color: "#A8D5BA", darkColor: "#7BB89A" },
+  history: { name: "သမိုင်း", emoji: "🏛️", color: "#E8D47B", darkColor: "#C9B55C" },
+  geography: { name: "ပထဝီ", emoji: "🌍", color: "#B8A4D9", darkColor: "#9880B8" },
 };
 
 type Mood = "idle" | "happy" | "excited" | "thinking" | "wave" | "sad";
 
-// ============================================================
-// PIP — with teacher hat
-// ============================================================
 function Pip({
   mood = "idle",
   size = 80,
   prop,
   flameTop = PAL.accent,
-  flameBottom = "#FFB84D",
+  flameBottom = PAL.accentDark,
   teacher = false,
 }: {
   mood?: Mood;
@@ -127,7 +116,6 @@ function Pip({
 
   return (
     <Animated.View style={[bodyAnim, { width: size, height: size * 1.3 }]}>
-      {/* Teacher hat */}
       {teacher && (
         <View
           style={{
@@ -143,18 +131,18 @@ function Pip({
             style={{
               width: size * 0.34,
               height: size * 0.26,
-              backgroundColor: "#2D2422",
+              backgroundColor: "#1E2A38",
               borderTopLeftRadius: size * 0.17,
               borderTopRightRadius: size * 0.17,
               borderWidth: 2,
-              borderColor: "#1A1512",
+              borderColor: "#0F1923",
             }}
           />
           <View
             style={{
               width: size * 0.44,
               height: size * 0.06,
-              backgroundColor: "#2D2422",
+              backgroundColor: "#1E2A38",
               borderRadius: size * 0.03,
               marginTop: -2,
             }}
@@ -183,7 +171,6 @@ function Pip({
         </View>
       )}
 
-      {/* Flame */}
       <View
         style={{
           position: "absolute",
@@ -195,7 +182,7 @@ function Pip({
         }}
       >
         <LinearGradient
-          colors={[flameTop, flameBottom, "rgba(255,184,77,0)"]}
+          colors={[flameTop, flameBottom, "rgba(159,122,234,0)"]}
           locations={[0, 0.5, 1]}
           style={{
             width: size * 0.28,
@@ -208,7 +195,6 @@ function Pip({
         />
       </View>
 
-      {/* Fins */}
       <View
         style={{
           position: "absolute",
@@ -236,7 +222,6 @@ function Pip({
         }}
       />
 
-      {/* Body */}
       <View
         style={{
           position: "absolute",
@@ -250,7 +235,6 @@ function Pip({
           borderColor: PAL.primaryDark,
         }}
       >
-        {/* Face */}
         <View
           style={{
             position: "absolute",
@@ -259,7 +243,7 @@ function Pip({
             right: size * 0.05,
             bottom: size * 0.05,
             borderRadius: size * 0.25,
-            backgroundColor: "#FFF5F0",
+            backgroundColor: "#F0F5F8",
             borderWidth: 2,
             borderColor: PAL.primaryDark,
           }}
@@ -281,7 +265,7 @@ function Pip({
                     width: size * 0.08,
                     height: mood === "sad" ? size * 0.06 : size * 0.11,
                     borderRadius: size * 0.04,
-                    backgroundColor: "#2D2422",
+                    backgroundColor: "#1E2A38",
                     alignItems: "center",
                     justifyContent: "flex-start",
                   },
@@ -300,7 +284,6 @@ function Pip({
               </Animated.View>
             ))}
           </View>
-          {/* Mouth — sad mouth flips */}
           <View
             style={{
               alignSelf: "center",
@@ -311,9 +294,9 @@ function Pip({
               borderBottomRightRadius: mood === "sad" ? 0 : size * 0.06,
               borderTopLeftRadius: mood === "sad" ? size * 0.06 : 0,
               borderTopRightRadius: mood === "sad" ? size * 0.06 : 0,
-              backgroundColor: mood === "sad" ? "transparent" : "#2D2422",
+              backgroundColor: mood === "sad" ? "transparent" : "#1E2A38",
               borderTopWidth: mood === "sad" ? 2 : 0,
-              borderColor: mood === "sad" ? "#2D2422" : "transparent",
+              borderColor: mood === "sad" ? "#1E2A38" : "transparent",
               overflow: "hidden",
             }}
           >
@@ -325,7 +308,7 @@ function Pip({
                   left: "25%",
                   right: "25%",
                   height: "45%",
-                  backgroundColor: "#FF6B8A",
+                  backgroundColor: PAL.accent,
                   borderTopLeftRadius: size * 0.02,
                   borderTopRightRadius: size * 0.02,
                 }}
@@ -333,7 +316,6 @@ function Pip({
             )}
           </View>
         </View>
-        {/* Window */}
         <View
           style={{
             position: "absolute",
@@ -342,14 +324,13 @@ function Pip({
             width: size * 0.2,
             height: size * 0.2,
             borderRadius: size * 0.1,
-            backgroundColor: PAL.secondary,
+            backgroundColor: PAL.accent,
             borderWidth: 2,
-            borderColor: PAL.secondaryDark,
+            borderColor: PAL.accentDark,
           }}
         />
       </View>
 
-      {/* Prop */}
       {prop && (
         <Animated.View
           style={[
@@ -376,9 +357,6 @@ function Pip({
   );
 }
 
-// ============================================================
-// LESSON ROW — minimal list row
-// ============================================================
 function LessonRow({
   lesson,
   index,
@@ -448,7 +426,6 @@ function LessonRow({
             },
           ]}
         >
-          {/* Order number */}
           <Text
             style={{
               fontFamily: FONT.extrabold,
@@ -461,7 +438,6 @@ function LessonRow({
             {String(lesson.order).padStart(2, "0")}
           </Text>
 
-          {/* Dot */}
           <Animated.View
             style={[
               dotAnim,
@@ -472,7 +448,6 @@ function LessonRow({
             ]}
           />
 
-          {/* Title + status */}
           <View style={{ flex: 1 }}>
             <Text
               style={{
@@ -498,7 +473,7 @@ function LessonRow({
                   width: 6,
                   height: 6,
                   borderRadius: 3,
-                  backgroundColor: lesson.published ? "#3BA89F" : PAL.accentDark,
+                  backgroundColor: lesson.published ? PAL.success : PAL.accentDark,
                 }}
               />
               <Text
@@ -514,7 +489,6 @@ function LessonRow({
             </View>
           </View>
 
-          {/* Actions — icon only, no box */}
           <View style={{ flexDirection: "row", gap: 4 }}>
             <Pressable
               onPress={() => {
@@ -543,9 +517,6 @@ function LessonRow({
   );
 }
 
-// ============================================================
-// MAIN SCREEN
-// ============================================================
 export default function TeacherSubjectLessons() {
   const router = useRouter();
   const { grade, subject } = useLocalSearchParams<{
@@ -630,7 +601,7 @@ export default function TeacherSubjectLessons() {
     ? meta.color
     : lessons.length === 0
     ? "#A0A0A0"
-    : "#FFB84D";
+    : PAL.accentDark;
 
   return (
     <View style={{ flex: 1, backgroundColor: PAL.bg }}>
@@ -649,7 +620,6 @@ export default function TeacherSubjectLessons() {
             width: "100%",
           }}
         >
-          {/* Back button */}
           <Pressable
             onPress={() => {
               Haptics.selectionAsync();
@@ -666,7 +636,6 @@ export default function TeacherSubjectLessons() {
             <Text style={{ fontSize: 22, color: PAL.text }}>←</Text>
           </Pressable>
 
-          {/* Pip + message */}
           <View
             style={{
               flexDirection: "row",
@@ -710,7 +679,6 @@ export default function TeacherSubjectLessons() {
             </Animated.View>
           </View>
 
-          {/* Header — subject info inline */}
           <Animated.View entering={FadeInDown.delay(100).springify()}>
             <View
               style={{
@@ -726,7 +694,7 @@ export default function TeacherSubjectLessons() {
                   fontFamily: FONT.extrabold,
                   fontSize: 11,
                   letterSpacing: 2,
-                  color: PAL.textMuted,
+                  color: PAL.primary,
                 }}
               >
                 {grade?.toUpperCase()} · {subject?.toUpperCase()}
@@ -755,7 +723,6 @@ export default function TeacherSubjectLessons() {
             </Text>
           </Animated.View>
 
-          {/* Add lesson — plain pill button */}
           <Animated.View entering={FadeInDown.delay(150).springify()}>
             <Pressable
               onPress={() => {
@@ -789,7 +756,6 @@ export default function TeacherSubjectLessons() {
             </Pressable>
           </Animated.View>
 
-          {/* Divider */}
           <View
             style={{
               height: 1,
@@ -799,7 +765,6 @@ export default function TeacherSubjectLessons() {
             }}
           />
 
-          {/* Lessons list */}
           <ScrollView
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: 40 }}

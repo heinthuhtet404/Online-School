@@ -141,6 +141,15 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="payment"
+        options={{
+          title: t("nav.payment") || "Payment",
+          tabBarIcon: ({ focused }) => (
+            <TabIcon emoji="💳" focused={focused} color="#4ECDC4" />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="settings"
         options={{
           title: t("nav.settings"),
@@ -149,6 +158,23 @@ export default function TabsLayout() {
           ),
         }}
       />
+      {/* Hidden — accessible via router.push, not shown in tab bar */}
+      <Tabs.Screen
+        name="payment-success"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: "Profile",
+          tabBarIcon: ({ focused }) => (
+            <TabIcon emoji="👤" focused={focused} color="#FF6B6B" />
+          ),
+        }}
+      />
     </Tabs>
+
   );
 }

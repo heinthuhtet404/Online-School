@@ -10,8 +10,8 @@ const resources = {
       "welcome.explorers": "စူးစမ်းရှာဖွေသူများ!",
       "welcome.tagline": "ရှာဖွေ။ သင်ယူ။ ဖန်တီး။ ကြီးပြင်း။",
       "welcome.playGuest": "ဧည့်သည်အဖြစ် ကစားမယ်",
-      "welcome.login": "အကောင့်ဝင်ရန် / ဖန်တီးရန်",
-      "welcome.teacher": "ဆရာ/မ ဝင်ရန်",
+      "welcome.login": "ကျောင်းသား အကောင့်ဝင်ရန်",
+      "welcome.teacher": "ဆရာ/မ အကောင့်ဝင်ရန်",
       "welcome.help": "အကူအညီနှင့် ပံ့ပိုးမှု",
 
       // Grades
@@ -32,11 +32,13 @@ const resources = {
       "grade.lessons": "သင်ခန်းစာများ",
       "grade.startQuiz": "Quiz စတင်မယ်",
       "grade.lessonsDone": "သင်ခန်းစာ",
+      "grade.premiumLock": "ဤသင်ခန်းစာကို ကြည့်ရှုရန် ငွေချေရန် လိုအပ်ပါသည်",
 
       // Bottom nav
       "nav.learn": "သင်ယူ",
       "nav.leaderboard": "အဆင့်",
       "nav.mailbox": "စာပို့",
+      "nav.payment": "ငွေချေ",
       "nav.settings": "ဆက်တင်",
 
       // Leaderboard
@@ -47,7 +49,9 @@ const resources = {
       "leaderboard.pts": "မှတ်",
       "leaderboard.rank": "အဆင့်",
       "leaderboard.empty": "ဒီအချိန် ကစားသမား မရှိသေးပါ",
+      "leaderboard.guestLock": "အဆင့်သတ်မှတ်ချက်တွင် ပါဝင်ရန် အကောင့်ဖွင့်ပါ",
 
+      // Subjects
       "subjects.title": "ဘာသာရပ် ရွေးပါ",
       "subjects.subtitle": "သင်ယူလိုတဲ့ ဘာသာရပ်ကို ရွေးချယ်ပါ",
       "subjects.myanmar": "မြန်မာစာ",
@@ -74,6 +78,9 @@ const resources = {
       "settings.about": "အကြောင်း",
       "settings.logout": "ထွက်မယ်",
       "settings.version": "ဗားရှင်း",
+      "settings.account": "အကောင့်",
+      "settings.upgrade": "Premium သို့ အဆင့်မြှင့်မယ်",
+      "settings.guestNotice": "ဧည့်သည်အနေဖြင့် အသုံးပြုနေပါသည်။ အချက်အလက်များ သိမ်းဆည်းရန် အကောင့်ဖွင့်ပါ။",
 
       // Auth
       "auth.loginTitle": "အကောင့်ဝင်ရန်",
@@ -91,6 +98,51 @@ const resources = {
       "auth.role": "အခန်းကဏ္ဍ",
       "auth.student": "ကျောင်းသား",
       "auth.teacher": "ဆရာ/မ",
+      "auth.studentLogin": "ကျောင်းသား ဝင်ရန်",
+      "auth.teacherLogin": "ဆရာ/မ ဝင်ရန်",
+      "auth.teacherNotice": "ဆရာ/မအကောင့်များကို ကျောင်းအုပ်ချုပ်သူ (Admin) မှ ဖွင့်ပေးပါမည်။",
+
+      // Payment
+      "payment.title": "ငွေချေရန်",
+      "payment.plan": "ပရီမီယံ အစီအစဉ် · ၁ လ",
+      "payment.planLabel": "ပရီမီယံ",
+      "payment.total": "စုစုပေါင်း",
+      "payment.method": "ငွေချေနည်း",
+      "payment.cardDetails": "ကတ် အချက်အလက်",
+      "payment.walletDetails": "ပိုက်ဆံအိတ် အချက်အလက်",
+      "payment.cardNumber": "ကတ်နံပါတ်",
+      "payment.cardHolder": "ကတ်ပိုင်ရှင် အမည်",
+      "payment.expiry": "သက်တမ်းကုန်ဆုံးမည့်ရက်",
+      "payment.cvv": "CVV",
+      "payment.phone": "ဖုန်းနံပါတ်",
+      "payment.pin": "PIN နံပါတ်",
+      "payment.payNow": "ငွေချေမယ်",
+      "payment.processing": "ဆောင်ရွက်နေသည်...",
+      "payment.secure": "သင့်ငွေချေမှုကို လုံခြုံစွာ ကုဒ်ဝှက်ထားပါသည်",
+      "payment.fillAll": "အကွက်အားလုံး ဖြည့်ပါ",
+      "payment.success": "ငွေချေမှု အောင်မြင်ပါသည်!",
+      "payment.successMessage": "သင့် ပရီမီယံ အစီအစဉ် အသက်ဝင်နေပါပြီ။\nဆက်လက် သင်ယူကြရအောင်! 🎓",
+      "payment.backHome": "ပင်မသို့ ပြန်မယ်",
+      "payment.viewGrades": "အဆင့်များ ကြည့်မယ်",
+
+      // Payment methods
+      "payment.methods.card": "ခရက်ဒစ် / ဒက်ဘစ် ကတ်",
+      "payment.methods.cardDesc": "Visa, Mastercard, JCB",
+      "payment.methods.kpay": "KPay",
+      "payment.methods.kpayDesc": "KBZ Pay ပိုက်ဆံအိတ်",
+      "payment.methods.wavepay": "WavePay",
+      "payment.methods.wavepayDesc": "Wave Money ပိုက်ဆံအိတ်",
+      "payment.methods.ayapay": "AYA Pay",
+      "payment.methods.ayapayDesc": "AYA ဘဏ် ပိုက်ဆံအိတ်",
+      "payment.methods.uabpay": "UAB Pay",
+      "payment.methods.uabpayDesc": "UAB ဘဏ် ပိုက်ဆံအိတ်",
+
+      // Payment reactions
+      "payment.reactions.card": "ကတ်နဲ့ ချေမယ် — လုံခြုံတယ်! 💳",
+      "payment.reactions.kpay": "KPay — မြန်ဆန်လွယ်ကူ! 📱",
+      "payment.reactions.wavepay": "WavePay — စတင်ကြရအောင်! 🌊",
+      "payment.reactions.ayapay": "AYA Pay — ယုံကြည်စိတ်ချ! 🅰️",
+      "payment.reactions.uabpay": "UAB Pay — ကောင်းတယ်! 🏦",
     },
   },
   en: {
@@ -100,8 +152,8 @@ const resources = {
       "welcome.explorers": "EXPLORERS!",
       "welcome.tagline": "Discover. Learn. Create. Grow.",
       "welcome.playGuest": "Play as Guest",
-      "welcome.login": "Log in / Sign in",
-      "welcome.teacher": "Teacher Access",
+      "welcome.login": "Student Login",
+      "welcome.teacher": "Teacher Login",
       "welcome.help": "Help & Support",
 
       "grades.selectLabel": "SELECT YOUR LEVEL",
@@ -120,10 +172,12 @@ const resources = {
       "grade.lessons": "Lessons",
       "grade.startQuiz": "Start Quiz",
       "grade.lessonsDone": "lessons",
+      "grade.premiumLock": "Payment required to unlock this lesson",
 
       "nav.learn": "Learn",
       "nav.leaderboard": "Ranks",
       "nav.mailbox": "Mail",
+      "nav.payment": "Pay",
       "nav.settings": "Settings",
 
       "leaderboard.title": "Top Players",
@@ -133,6 +187,7 @@ const resources = {
       "leaderboard.pts": "pts",
       "leaderboard.rank": "Rank",
       "leaderboard.empty": "No players yet",
+      "leaderboard.guestLock": "Create an account to join the leaderboard",
 
       "subjects.title": "Choose Subject",
       "subjects.subtitle": "Select a subject to learn",
@@ -158,6 +213,9 @@ const resources = {
       "settings.about": "About",
       "settings.logout": "Log out",
       "settings.version": "Version",
+      "settings.account": "Account",
+      "settings.upgrade": "Upgrade to Premium",
+      "settings.guestNotice": "You are using as Guest. Create an account to save your data.",
 
       "auth.loginTitle": "Log In",
       "auth.signupTitle": "Create Account",
@@ -174,6 +232,51 @@ const resources = {
       "auth.role": "Role",
       "auth.student": "Student",
       "auth.teacher": "Teacher",
+      "auth.studentLogin": "Student Login",
+      "auth.teacherLogin": "Teacher Login",
+      "auth.teacherNotice": "Teacher accounts must be created by an Admin.",
+
+      // Payment
+      "payment.title": "Payment",
+      "payment.plan": "Premium Plan · 1 Month",
+      "payment.planLabel": "PREMIUM",
+      "payment.total": "TOTAL",
+      "payment.method": "PAYMENT METHOD",
+      "payment.cardDetails": "CARD DETAILS",
+      "payment.walletDetails": "WALLET DETAILS",
+      "payment.cardNumber": "Card Number",
+      "payment.cardHolder": "Cardholder Name",
+      "payment.expiry": "Expiry",
+      "payment.cvv": "CVV",
+      "payment.phone": "Phone Number",
+      "payment.pin": "PIN",
+      "payment.payNow": "Pay",
+      "payment.processing": "Processing...",
+      "payment.secure": "Your payment is secure & encrypted",
+      "payment.fillAll": "Please fill all fields! ⚠️",
+      "payment.success": "Payment Successful!",
+      "payment.successMessage": "Your Premium plan is now active.\nLet's keep learning! 🎓",
+      "payment.backHome": "Back to Home",
+      "payment.viewGrades": "View Grades →",
+
+      // Payment methods
+      "payment.methods.card": "Credit / Debit Card",
+      "payment.methods.cardDesc": "Visa, Mastercard, JCB",
+      "payment.methods.kpay": "KPay",
+      "payment.methods.kpayDesc": "KBZ Pay wallet",
+      "payment.methods.wavepay": "WavePay",
+      "payment.methods.wavepayDesc": "Wave Money wallet",
+      "payment.methods.ayapay": "AYA Pay",
+      "payment.methods.ayapayDesc": "AYA Bank wallet",
+      "payment.methods.uabpay": "UAB Pay",
+      "payment.methods.uabpayDesc": "UAB Bank wallet",
+
+      // Payment reactions
+      "payment.reactions.card": "Card payment — secure! 💳",
+      "payment.reactions.kpay": "KPay — quick and easy! 📱",
+      "payment.reactions.wavepay": "WavePay — let's go! 🌊",
+      "payment.reactions.ayapay": "AYA Pay — trusted! 🅰️",
+      "payment.reactions.uabpay": "UAB Pay — great! 🏦",
     },
   },
 };
