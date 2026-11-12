@@ -11,6 +11,7 @@ import Animated, {
   withRepeat,
   withTiming,
   withDelay,
+  withSpring,
   Easing,
   FadeInDown,
 } from "react-native-reanimated";
@@ -20,200 +21,120 @@ import { FONT } from "@/lib/design";
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
 
-// ---------- Neumorphic palette ----------
-const NEU = {
-  bg: "#E0E5EC",           // classic soft-ui base
-  bgAlt: "#DDE3EB",        // slight variation for depth
-  light: "#FFFFFF",        // top-left highlight
-  dark: "#A3B1C6",         // bottom-right shadow
-  text: "#3D4A5C",         // slate text
-  textMuted: "#7A889B",    // muted slate
-  accent: "#6C63FF",       // soft violet
-  accent2: "#4ECDC4",      // teal
-  accent3: "#FF6B9D",      // pink
-  accent4: "#48C9B0",      // mint
-  accent5: "#F7B731",      // amber
+// ---------- Clay palette (soft pastels, desaturated) ----------
+const CLAY = {
+  bg: "#F4EEE8",           // warm cream base
+  surface: "#FBF6F0",      // lighter cream (elements)
+  surfaceAlt: "#EFE7DF",   // slightly deeper cream
+  text: "#4A4038",         // warm dark brown (not black!)
+  textMuted: "#8B7E72",    // warm muted
+  pink: "#F4A6C0",         // soft rose
+  pinkDark: "#E88AA8",     // rose shadow
+  mint: "#9DD9C5",         // soft mint
+  mintDark: "#7EC4AE",     // mint shadow
+  yellow: "#F7D794",       // soft butter
+  yellowDark: "#EBC572",
+  lavender: "#B8A9E0",     // soft lavender
+  lavenderDark: "#9C8BC9",
+  sky: "#9EC5E8",          // soft sky
+  skyDark: "#7EABD4",
 };
 
-// Neumorphic radius scale
-const NEU_R = {
-  sm: 12,
-  md: 20,
-  lg: 28,
+const CLAY_R = {
+  sm: 16,
+  md: 24,
+  lg: 32,
+  xl: 40,
   pill: 999,
 };
 
-// ---------- Neumorphic "extruded" surface ----------
-function Neumorph({
+// ---------- The clay surface ----------
+// Fakes the classic 3-shadow clay look:
+//   outer drop (bottom-right) + inner top highlight + inner bottom shade
+function ClaySurface({
   children,
   style,
-  radius = NEU_R.md,
+  radius = CLAY_R.lg,
+  color = CLAY.surface,
   pressed = false,
-  size = "md",
 }: {
   children: React.ReactNode;
   style?: any;
   radius?: number;
+  color?: string;
   pressed?: boolean;
-  size?: "sm" | "md" | "lg";
-}) {
-  const offset = size === "lg" ? 8 : size === "sm" ? 4 : 6;
-  const blur = size === "lg" ? 20 : size === "sm" ? 10 : 14;
-
-  // Outer shadow sits on a wrapper View, because RN clips children
-  // when overflow is hidden (which we need for the inset shadow).
-  return (
-    <View
-      style={[
-        {
-          borderRadius: radius,
-          backgroundColor: NEU.bg,
-          // Raised state: dual shadows
-          shadowColor: NEU.dark,
-          shadowOffset: { width: offset, height: offset },
-          shadowOpacity: 0.55,
-          shadowRadius: blur,
-          elevation: offset + 4,
-        },
-        style,
-      ]}
-    >
-      {/* Inner highlight (top-left) — drawn as a subtle 1px border-glow */}
-      {!pressed && (
-        <View
-          pointerEvents="none"
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            borderRadius: radius,
-            borderTopWidth: 1.5,
-            borderLeftWidth: 1.5,
-            borderColor: "rgba(255,255,255,0.9)",
-            opacity: 0.9,
-          }}
-        />
-      )}
-      {children}
-    </View>
-  );
-}
-
-// ---------- Pressed (inset) surface ----------
-function NeumorphInset({
-  children,
-  style,
-  radius = NEU_R.md,
-}: {
-  children: React.ReactNode;
-  style?: any;
-  radius?: number;
 }) {
   return (
     <View
       style={[
         {
           borderRadius: radius,
-          backgroundColor: NEU.bg,
-          // Inset shadows faked with borders
-          borderTopWidth: 2,
-          borderLeftWidth: 2,
-          borderBottomWidth: 2,
-          borderRightWidth: 2,
-          borderTopColor: NEU.dark + "55",
-          borderLeftColor: NEU.dark + "33",
-          borderBottomColor: NEU.light,
-          borderRightColor: NEU.light,
+          backgroundColor: color,
+          // ---- OUTER DROP SHADOW (offset down-right) ----
+          shadowColor: "#B8A99A",
+          shadowOffset: { width: 0, height: pressed ? 2 : 10 },
+          shadowOpacity: pressed ? 0.25 : 0.45,
+          shadowRadius: pressed ? 6 : 18,
+          elevation: pressed ? 2 : 10,
         },
         style,
       ]}
     >
-      {children}
-    </View>
-  );
-}
-
-// ---------- Neumorphic button ----------
-function NeuButton({
-  label,
-  icon,
-  onPress,
-  accent = NEU.accent,
-  style,
-  size = "md",
-  filled = false,
-}: {
-  label: string;
-  icon?: string;
-  onPress: () => void;
-  accent?: string;
-  style?: any;
-  size?: "md" | "lg";
-  filled?: boolean;
-}) {
-  const [pressed, setPressed] = useState(false);
-  const isLg = size === "lg";
-
-  return (
-    <Pressable
-      onPressIn={() => setPressed(true)}
-      onPressOut={() => setPressed(false)}
-      onPress={() => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        onPress();
-      }}
-      style={[styles.neuShadow, { borderRadius: NEU_R.pill }, style]}
-    >
+      {/* ---- INNER TOP HIGHLIGHT (light inset) ---- */}
       <View
+        pointerEvents="none"
         style={{
-          borderRadius: NEU_R.pill,
-          backgroundColor: filled ? accent : NEU.bg,
-          paddingVertical: isLg ? 20 : 16,
-          paddingHorizontal: 24,
-          alignItems: "center",
-          justifyContent: "center",
-          // dual-shadow (raised)
-          shadowColor: pressed ? "transparent" : NEU.dark,
-          shadowOffset: pressed ? { width: 0, height: 0 } : { width: 6, height: 6 },
-          shadowOpacity: pressed ? 0 : 0.55,
-          shadowRadius: pressed ? 0 : 12,
-          elevation: pressed ? 0 : 6,
-          // rim light
-          borderTopWidth: pressed ? 1.5 : 1,
-          borderLeftWidth: pressed ? 1.5 : 1,
-          borderTopColor: pressed ? NEU.dark + "44" : "rgba(255,255,255,0.85)",
-          borderLeftColor: pressed ? NEU.dark + "22" : "rgba(255,255,255,0.7)",
-          borderBottomWidth: pressed ? 1 : 0,
-          borderRightWidth: pressed ? 1 : 0,
-          borderBottomColor: pressed ? "rgba(255,255,255,0.9)" : "transparent",
-          borderRightColor: pressed ? "rgba(255,255,255,0.9)" : "transparent",
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          borderRadius: radius,
+          borderTopWidth: 2,
+          borderLeftWidth: 1.5,
+          borderRightWidth: 0.5,
+          borderTopColor: "rgba(255,255,255,0.95)",
+          borderLeftColor: "rgba(255,255,255,0.7)",
+          borderRightColor: "rgba(255,255,255,0.3)",
         }}
-      >
-        <Text
-          style={{
-            fontFamily: FONT.extrabold,
-            fontSize: isLg ? 17 : 15,
-            letterSpacing: 0.3,
-            color: filled ? "#FFFFFF" : NEU.text,
-          }}
-        >
-          {icon ? `${icon}  ` : ""}
-          {label}
-        </Text>
-      </View>
-    </Pressable>
+      />
+      {/* ---- INNER BOTTOM SHADE (dark inset) ---- */}
+      <View
+        pointerEvents="none"
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          borderRadius: radius,
+          borderBottomWidth: 2,
+          borderRightWidth: 1.5,
+          borderBottomColor: shadeOf(color, 0.85),
+          borderRightColor: shadeOf(color, 0.9),
+        }}
+      />
+      {children}
+    </View>
   );
 }
 
-// ---------- Floating soft blob (subtle) ----------
-function SoftBlob({
+// Utility: darken a hex color
+function shadeOf(hex: string, factor: number): string {
+  const h = hex.replace("#", "");
+  const r = Math.round(parseInt(h.substring(0, 2), 16) * factor);
+  const g = Math.round(parseInt(h.substring(2, 4), 16) * factor);
+  const b = Math.round(parseInt(h.substring(4, 6), 16) * factor);
+  return `rgb(${r},${g},${b})`;
+}
+
+// ---------- Clay blob ----------
+function ClayBlob({
   size,
   color,
   style,
   delay = 0,
-  amount = -8,
+  amount = -10,
 }: {
   size: number;
   color: string;
@@ -226,7 +147,7 @@ function SoftBlob({
     o.value = withDelay(
       delay,
       withRepeat(
-        withTiming(1, { duration: 4500, easing: Easing.inOut(Easing.ease) }),
+        withTiming(1, { duration: 3600, easing: Easing.inOut(Easing.ease) }),
         -1,
         true
       )
@@ -235,6 +156,7 @@ function SoftBlob({
   const anim = useAnimatedStyle(() => ({
     transform: [{ translateY: o.value * amount }],
   }));
+
   return (
     <Animated.View style={[style, anim]}>
       <View
@@ -243,15 +165,120 @@ function SoftBlob({
           height: size,
           borderRadius: size / 2,
           backgroundColor: color,
-          opacity: 0.35,
-          // soft, diffuse shadow = the "blob" feel
-          shadowColor: color,
-          shadowOffset: { width: 0, height: 8 },
+          // outer shadow
+          shadowColor: shadeOf(color, 0.7),
+          shadowOffset: { width: 0, height: size * 0.15 },
           shadowOpacity: 0.5,
-          shadowRadius: size * 0.4,
-          elevation: 6,
+          shadowRadius: size * 0.3,
+          elevation: 10,
         }}
-      />
+      >
+        {/* top-left white highlight — the signature clay "gloss" */}
+        <View
+          style={{
+            position: "absolute",
+            top: size * 0.12,
+            left: size * 0.15,
+            width: size * 0.28,
+            height: size * 0.22,
+            borderRadius: size * 0.14,
+            backgroundColor: "rgba(255,255,255,0.75)",
+            transform: [{ rotate: "-20deg" }],
+          }}
+        />
+        {/* secondary tiny glint */}
+        <View
+          style={{
+            position: "absolute",
+            top: size * 0.1,
+            right: size * 0.22,
+            width: size * 0.08,
+            height: size * 0.08,
+            borderRadius: size * 0.04,
+            backgroundColor: "rgba(255,255,255,0.85)",
+          }}
+        />
+        {/* bottom shade rim (inner) */}
+        <View
+          style={{
+            position: "absolute",
+            bottom: 2,
+            left: size * 0.2,
+            right: size * 0.2,
+            height: 2,
+            borderRadius: 2,
+            backgroundColor: shadeOf(color, 0.82),
+            opacity: 0.6,
+          }}
+        />
+      </View>
+    </Animated.View>
+  );
+}
+
+// ---------- Clay button ----------
+function ClayButton({
+  label,
+  icon,
+  onPress,
+  color = CLAY.lavender,
+  textColor = "#FFFFFF",
+  style,
+  size = "md",
+}: {
+  label: string;
+  icon?: string;
+  onPress: () => void;
+  color?: string;
+  textColor?: string;
+  style?: any;
+  size?: "md" | "lg";
+}) {
+  const [pressed, setPressed] = useState(false);
+  const scale = useSharedValue(1);
+  const isLg = size === "lg";
+
+  useEffect(() => {
+    scale.value = withSpring(pressed ? 0.96 : 1, { damping: 15, stiffness: 300 });
+  }, [pressed]);
+
+  const anim = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  return (
+    <Animated.View style={[{ borderRadius: CLAY_R.pill }, style, anim]}>
+      <Pressable
+        onPressIn={() => setPressed(true)}
+        onPressOut={() => setPressed(false)}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          onPress();
+        }}
+      >
+        <ClaySurface
+          radius={CLAY_R.pill}
+          color={color}
+          pressed={pressed}
+          style={{ paddingVertical: isLg ? 20 : 16, paddingHorizontal: 24 }}
+        >
+          <Text
+            style={{
+              fontFamily: FONT.extrabold,
+              fontSize: isLg ? 17 : 15,
+              letterSpacing: 0.3,
+              color: textColor,
+              textAlign: "center",
+              textShadowColor: shadeOf(color, 0.75),
+              textShadowOffset: { width: 0, height: 1 },
+              textShadowRadius: 1,
+            }}
+          >
+            {icon ? `${icon}  ` : ""}
+            {label}
+          </Text>
+        </ClaySurface>
+      </Pressable>
     </Animated.View>
   );
 }
@@ -263,7 +290,7 @@ export default function Welcome() {
   const { setMode } = useMode();
 
   return (
-    <View style={{ flex: 1, backgroundColor: NEU.bg }}>
+    <View style={{ flex: 1, backgroundColor: CLAY.bg }}>
       <SafeAreaView style={{ flex: 1 }}>
         <View
           style={{
@@ -285,23 +312,22 @@ export default function Welcome() {
             }}
           >
             <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-              <Neumorph radius={NEU_R.md} size="sm">
+              <ClaySurface radius={CLAY_R.sm} color={CLAY.pink} style={{ width: 48, height: 48 }}>
                 <View
                   style={{
-                    width: 44,
-                    height: 44,
+                    flex: 1,
                     alignItems: "center",
                     justifyContent: "center",
                   }}
                 >
-                  <Text style={{ fontSize: 20 }}>🎓</Text>
+                  <Text style={{ fontSize: 22 }}>🍭</Text>
                 </View>
-              </Neumorph>
+              </ClaySurface>
               <Text
                 style={{
                   fontFamily: FONT.extrabold,
                   fontSize: 13,
-                  color: NEU.text,
+                  color: CLAY.text,
                   letterSpacing: 1.5,
                 }}
               >
@@ -309,9 +335,9 @@ export default function Welcome() {
               </Text>
             </View>
 
-            {/* Language pill — inset toggle */}
-            <NeumorphInset radius={NEU_R.pill}>
-              <View style={{ flexDirection: "row", padding: 4 }}>
+            {/* Language toggle — clay "shelf" with a raised pill on top */}
+            <ClaySurface radius={CLAY_R.pill} color={CLAY.surfaceAlt} style={{ padding: 4 }}>
+              <View style={{ flexDirection: "row" }}>
                 {(["my", "en"] as const).map((l) => {
                   const active = lang === l;
                   return (
@@ -321,32 +347,47 @@ export default function Welcome() {
                         Haptics.selectionAsync();
                         setLang(l);
                       }}
-                      style={{
-                        paddingHorizontal: 16,
-                        paddingVertical: 7,
-                        borderRadius: NEU_R.pill,
-                        backgroundColor: active ? NEU.bg : "transparent",
-                        shadowColor: active ? NEU.dark : "transparent",
-                        shadowOffset: { width: 3, height: 3 },
-                        shadowOpacity: active ? 0.5 : 0,
-                        shadowRadius: 6,
-                        elevation: active ? 3 : 0,
-                      }}
+                      style={{ borderRadius: CLAY_R.pill }}
                     >
-                      <Text
-                        style={{
-                          fontFamily: FONT.extrabold,
-                          fontSize: 12,
-                          color: active ? NEU.accent : NEU.textMuted,
-                        }}
-                      >
-                        {l.toUpperCase()}
-                      </Text>
+                      {active ? (
+                        <ClaySurface
+                          radius={CLAY_R.pill}
+                          color={CLAY.lavender}
+                          style={{ paddingHorizontal: 16, paddingVertical: 8 }}
+                        >
+                          <Text
+                            style={{
+                              fontFamily: FONT.extrabold,
+                              fontSize: 12,
+                              color: "#FFFFFF",
+                            }}
+                          >
+                            {l.toUpperCase()}
+                          </Text>
+                        </ClaySurface>
+                      ) : (
+                        <View
+                          style={{
+                            paddingHorizontal: 16,
+                            paddingVertical: 8,
+                          }}
+                        >
+                          <Text
+                            style={{
+                              fontFamily: FONT.extrabold,
+                              fontSize: 12,
+                              color: CLAY.textMuted,
+                            }}
+                          >
+                            {l.toUpperCase()}
+                          </Text>
+                        </View>
+                      )}
                     </Pressable>
                   );
                 })}
               </View>
-            </NeumorphInset>
+            </ClaySurface>
           </View>
 
           {/* ---- Hero headline ---- */}
@@ -356,7 +397,7 @@ export default function Welcome() {
                 fontFamily: FONT.extrabold,
                 fontSize: isTablet ? 64 : 44,
                 lineHeight: isTablet ? 72 : 52,
-                color: NEU.text,
+                color: CLAY.text,
                 letterSpacing: -1.5,
               }}
             >
@@ -368,7 +409,7 @@ export default function Welcome() {
                 fontSize: isTablet ? 64 : 44,
                 lineHeight: isTablet ? 72 : 52,
                 letterSpacing: -1.5,
-                color: NEU.accent,
+                color: CLAY.lavenderDark,
               }}
             >
               {t("welcome.little")}
@@ -379,7 +420,7 @@ export default function Welcome() {
                 fontSize: isTablet ? 64 : 44,
                 lineHeight: isTablet ? 72 : 52,
                 letterSpacing: -1.5,
-                color: NEU.accent3,
+                color: CLAY.pinkDark,
               }}
             >
               {t("welcome.explorers")}
@@ -388,7 +429,7 @@ export default function Welcome() {
               style={{
                 fontFamily: FONT.semibold,
                 fontSize: 15,
-                color: NEU.textMuted,
+                color: CLAY.textMuted,
                 marginTop: 12,
               }}
             >
@@ -396,74 +437,90 @@ export default function Welcome() {
             </Text>
           </Animated.View>
 
-          {/* ---- Neumorphic illustration panel (inset) ---- */}
+          {/* ---- Clay illustration zone ---- */}
           <View
             style={{
-              height: isTablet ? 200 : 160,
-              marginTop: 20,
+              height: isTablet ? 220 : 180,
+              marginTop: 16,
               marginBottom: 12,
+              position: "relative",
             }}
           >
-            <NeumorphInset
-              radius={NEU_R.lg}
+            <ClaySurface
+              radius={CLAY_R.xl}
+              color={CLAY.surfaceAlt}
               style={{ width: "100%", height: "100%" }}
             >
-              <View
-                style={{
-                  flex: 1,
-                  justifyContent: "center",
-                  alignItems: "center",
-                }}
-              >
-                <SoftBlob
-                  size={isTablet ? 90 : 70}
-                  color={NEU.accent}
-                  style={{ position: "absolute", top: 18, left: 30 }}
-                  delay={200}
+              <View style={{ flex: 1, position: "relative" }}>
+                <ClayBlob
+                  size={isTablet ? 110 : 84}
+                  color={CLAY.lavender}
+                  style={{ position: "absolute", top: 16, left: 24 }}
+                  delay={0}
                 />
-                <SoftBlob
-                  size={isTablet ? 64 : 52}
-                  color={NEU.accent2}
+                <ClayBlob
+                  size={isTablet ? 76 : 60}
+                  color={CLAY.mint}
                   style={{ position: "absolute", top: 30, right: 40 }}
-                  delay={700}
-                />
-                <SoftBlob
-                  size={isTablet ? 48 : 38}
-                  color={NEU.accent3}
-                  style={{ position: "absolute", bottom: 22, right: 90 }}
-                  delay={1100}
-                />
-                <SoftBlob
-                  size={isTablet ? 40 : 30}
-                  color={NEU.accent5}
-                  style={{ position: "absolute", bottom: 28, left: 80 }}
                   delay={400}
                 />
-                <Text style={{ fontSize: isTablet ? 56 : 44 }}>🚀</Text>
+                <ClayBlob
+                  size={isTablet ? 58 : 46}
+                  color={CLAY.yellow}
+                  style={{ position: "absolute", bottom: 22, right: 90 }}
+                  delay={800}
+                />
+                <ClayBlob
+                  size={isTablet ? 46 : 36}
+                  color={CLAY.pink}
+                  style={{ position: "absolute", bottom: 26, left: 90 }}
+                  delay={1200}
+                />
+                <ClayBlob
+                  size={isTablet ? 32 : 26}
+                  color={CLAY.sky}
+                  style={{ position: "absolute", top: 12, right: isTablet ? 200 : 140 }}
+                  delay={200}
+                />
+                {/* Center emoji overlaid on the "scene" */}
+                <View
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Text style={{ fontSize: isTablet ? 64 : 52 }}>🚀</Text>
+                </View>
               </View>
-            </NeumorphInset>
+            </ClaySurface>
           </View>
 
           {/* ---- CTA Buttons ---- */}
           <Animated.View entering={FadeInDown.delay(300).springify()}>
-            <NeuButton
+            <ClayButton
               label={t("welcome.playGuest")}
               icon="🚀"
               size="lg"
-              filled
-              accent={NEU.accent}
+              color={CLAY.lavender}
               onPress={() => router.push("/(student)/grades")}
               style={{ marginBottom: 16 }}
             />
-            <NeuButton
+            <ClayButton
               label={t("welcome.login")}
+              color={CLAY.pink}
               onPress={() => router.push("/(auth)/login")}
               style={{ marginBottom: 16 }}
             />
-            <NeuButton
+            <ClayButton
               label={t("welcome.teacher")}
               icon="👩‍🏫"
-              accent={NEU.accent4}
+              color={CLAY.mint}
+              textColor="#FFFFFF"
               onPress={() => {
                 setMode("teacher");
                 router.push("/(teacher)/dashboard");
@@ -478,7 +535,7 @@ export default function Welcome() {
               textAlign: "center",
               fontFamily: FONT.semibold,
               fontSize: 11,
-              color: NEU.textMuted,
+              color: CLAY.textMuted,
               marginTop: 20,
               marginBottom: 8,
             }}
@@ -490,13 +547,3 @@ export default function Welcome() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  neuShadow: {
-    shadowColor: NEU.dark,
-    shadowOffset: { width: 8, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-});
