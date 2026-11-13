@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "842719845835",
+    "firebase_url": "https://online-school-1350d-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "online-school-1350d",
+    "storage_bucket": "online-school-1350d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:842719845835:android:00567b7474aeb8953caa4e",
+        "android_client_info": {
+          "package_name": "com.anonymous.onlineschool"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "842719845835-jrrgdorupe1qhnuilg3s0up67pgi5gdq.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyANP73_E8KYfrFCZ8banK2OVs4uh8BnmQc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "842719845835-5v6mdqkjul60m71detu96ss0p3fpr77q.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

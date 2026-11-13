@@ -34,7 +34,7 @@ import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import * as Google from "expo-auth-session/providers/google";
 import * as WebBrowser from "expo-web-browser";
-import { GOOGLE_WEB_CLIENT_ID, handleGoogleSignIn } from "@/app/lib/google-auth";
+import { GOOGLE_WEB_CLIENT_ID, GOOGLE_ANDROID_CLIENT_ID, handleGoogleSignIn } from "@/lib/google-auth";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -137,21 +137,22 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const resetTimer = useRef<any>(null);
 
-  // ⭐ Google Sign-In Setup
+  // ⭐ Google Sign-In Setup (Web + Android Client ID)
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
     clientId: GOOGLE_WEB_CLIENT_ID,
+    androidClientId: GOOGLE_ANDROID_CLIENT_ID,
   });
 
   useEffect(() => {
     if (response?.type === "success") {
-      const { id_token } = response.params;
+      const { id_token, access_token } = response.params;
       setLoading(true);
-      handleGoogleSignIn(id_token)
+      handleGoogleSignIn(id_token, access_token)
         .then(() => {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           router.replace("/(student)/grades");
         })
-        .catch((err) => {
+        .catch((err: any) => {
           Alert.alert("Google Login Error", err.message);
         })
         .finally(() => setLoading(false));
@@ -242,7 +243,6 @@ export default function Login() {
               <View style={{ flex: 1, height: 1, backgroundColor: PAL.divider }} />
             </View>
 
-            {/* ⭐ Google Sign In ခလုတ် */}
             <Pressable
               onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); promptAsync(); }}
               disabled={!request || loading}
