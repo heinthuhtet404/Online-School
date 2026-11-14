@@ -51,16 +51,34 @@ export default function TeacherLogin() {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, pw);
       const user = userCredential.user;
+
+      // ⭐ Debug: Auth UID ကို ပြမယ်
+      console.log("========================================");
+      console.log("🔑 Auth UID:", user.uid);
+      console.log("📧 Auth Email:", user.email);
+      console.log("========================================");
+
+      // ⭐ Debug: Firestore Document ကို ဆွဲယူမယ်
       const docSnap = await getDoc(doc(db, "users", user.uid));
-      
+
+      console.log("📄 Document exists:", docSnap.exists());
+      console.log("📄 Document data:", docSnap.data());
+      console.log("📄 Document role:", docSnap.data()?.role);
+      console.log("========================================");
+
       if (docSnap.exists() && docSnap.data().role === "teacher") {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         router.replace("/(teacher)/dashboard");
       } else {
-        Alert.alert("ဝင်ရောက်မရပါ", "ဤအကောင့်သည် ဆရာ/မအကောင့် မဟုတ်ပါ။");
+        // ⭐ Debug: Alert မှာ ဘာမှားနေလဲ ပြမယ်
+        Alert.alert(
+          "ဝင်ရောက်မရပါ",
+          `Document exists: ${docSnap.exists()}\nRole: ${docSnap.data()?.role || "N/A"}`
+        );
       }
     } catch (error: any) {
-      Alert.alert("ဝင်ရောက်မရပါ", "အီးမေးလ် သို့မဟုတ် စကားဝှက် မှားနေပါသည်။");
+      console.log("❌ Login Error:", error.code, error.message);
+      Alert.alert("ဝင်ရောက်မရပါ", `${error.code}\n${error.message}`);
     } finally {
       setLoading(false);
     }

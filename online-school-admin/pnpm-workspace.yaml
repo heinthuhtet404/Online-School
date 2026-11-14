@@ -1,0 +1,29 @@
+# Read by pnpm only; npm, yarn and bun ignore this file.
+#
+# pnpm refuses to install until the dependencies that run install scripts are approved,
+# and it re-runs that check before `pnpm run`, so without this a scaffolded project can
+# neither be installed nor started with pnpm at all:
+#     ERR_PNPM_IGNORED_BUILDS  Ignored build scripts: @firebase/util, esbuild, …
+# pnpm 11 reads `allowBuilds`, pnpm 10 `onlyBuiltDependencies`; both are listed so either
+# works. These are the native and protobuf builds Firebase, Vite and the image tooling
+# need; nothing else is approved.
+allowBuilds:
+  "@firebase/util": true
+  esbuild: true
+  protobufjs: true
+  re2: true
+  sharp: true
+  unrs-resolver: true
+onlyBuiltDependencies:
+  - "@firebase/util"
+  - esbuild
+  - protobufjs
+  - re2
+  - sharp
+  - unrs-resolver
+
+# The project itself, and nothing else. Without a `packages` field pnpm before 10.5
+# refuses to run at all in this folder ("packages field missing or empty"), not
+# even `pnpm install`.
+packages:
+  - "."

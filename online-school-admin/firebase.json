@@ -1,0 +1,17 @@
+{
+    "hosting": {
+        "public": "build",
+        "site": "online-school-1350d",
+        "ignore": [
+            "firebase.json",
+            "**/.*",
+            "**/node_modules/**"
+        ],
+        "rewrites": [
+            {
+                "source": "**",
+                "destination": "/index.html"
+            }
+        ]
+    }
+}
