@@ -123,6 +123,15 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="quizzes"
+        options={{
+          title: "Quizzes",
+          tabBarIcon: ({ focused }) => (
+            <TabIcon emoji="✏️" focused={focused} color="#FFD93D" />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="leaderboard"
         options={{
           title: t("nav.leaderboard"),
@@ -141,11 +150,11 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="payment"
+        name="profile"
         options={{
-          title: t("nav.payment") || "Payment",
+          title: "Profile",
           tabBarIcon: ({ focused }) => (
-            <TabIcon emoji="💳" focused={focused} color="#4ECDC4" />
+            <TabIcon emoji="👤" focused={focused} color="#FF6B6B" />
           ),
         }}
       />
@@ -158,23 +167,6 @@ export default function TabsLayout() {
           ),
         }}
       />
-      {/* Hidden — accessible via router.push, not shown in tab bar */}
-      <Tabs.Screen
-        name="payment-success"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: "Profile",
-          tabBarIcon: ({ focused }) => (
-            <TabIcon emoji="👤" focused={focused} color="#FF6B6B" />
-          ),
-        }}
-      />
     </Tabs>
-
   );
 }

@@ -1,94 +1,69 @@
-import { View, Text, Pressable, ScrollView, Dimensions } from "react-native";
+import { View, Text, Dimensions, Pressable, ScrollView, ActivityIndicator, Alert, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
+import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
-  FadeInDown,
-  FadeIn,
-  SlideInRight,
   useSharedValue,
   useAnimatedStyle,
-  withTiming,
   withSpring,
   withRepeat,
+  withTiming,
   withSequence,
   withDelay,
   Easing,
+  FadeInDown,
+  FadeIn,
   interpolate,
 } from "react-native-reanimated";
-import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { FONT } from "@/lib/design";
+import { getQuiz, Quiz } from "@/lib/quizzes-service";
+import { submitAttempt } from "@/lib/attempts-service";
+import { auth } from "@/lib/firebase";
 
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
 
-// ============================================================
-// PALETTE
-// ============================================================
 const PAL = {
-  bg: "#FFF8F0",
-  bgTop: "#FFE8D6",
-  bgBottom: "#E8F4FF",
-  primary: "#FF6B6B",
-  primaryDark: "#E05050",
-  secondary: "#4ECDC4",
-  secondaryDark: "#3BA89F",
-  accent: "#FFD93D",
-  accentDark: "#E5C020",
-  text: "#2D2422",
-  textMuted: "#7A6A63",
-  divider: "#EDE3D8",
-  success: "#1E7A6F",
-  successBg: "#D4F4E8",
-  danger: "#C2402B",
-  dangerBg: "#FFE0D8",
+  bg: "#FFF8F0", bgTop: "#FFE8D6", bgBottom: "#E8F4FF",
+  primary: "#FF6B6B", primaryDark: "#E05050",
+  secondary: "#4ECDC4", secondaryDark: "#3BA89F",
+  accent: "#FFD93D", accentDark: "#E5C020",
+  text: "#2D2422", textMuted: "#7A6A63", divider: "#EDE3D8",
+  success: "#2C7A7B", danger: "#C2402B",
 };
 
-// ============================================================
-// QUESTIONS
-// ============================================================
-type Question = { id: string; text: string; options: string[]; correctIndex: number };
+const SUBJECT_META: Record<string, { emoji: string; color: string; darkColor: string }> = {
+  myanmar: { emoji: "📖", color: "#F4A6C0", darkColor: "#E88AA8" },
+  english: { emoji: "🔤", color: "#FF6B6B", darkColor: "#E05050" },
+  math: { emoji: "🔢", color: "#4ECDC4", darkColor: "#3BA89F" },
+  science: { emoji: "🔬", color: "#9DD9C5", darkColor: "#7EC4AE" },
+  history: { emoji: "🏛️", color: "#FFD93D", darkColor: "#E5C020" },
+  geography: { emoji: "🌍", color: "#9FE870", darkColor: "#7EC450" },
+};
 
-const QUESTIONS: Question[] = [
-  { id: "q1", text: "5 + 3 = ?", options: ["6", "7", "8", "9"], correctIndex: 2 },
-  { id: "q2", text: "10 - 4 = ?", options: ["5", "6", "7", "8"], correctIndex: 1 },
-  { id: "q3", text: "2 × 4 = ?", options: ["6", "8", "10", "12"], correctIndex: 1 },
-  { id: "q4", text: "12 ÷ 3 = ?", options: ["4", "5", "6", "7"], correctIndex: 0 },
-  { id: "q5", text: "7 + 6 = ?", options: ["11", "12", "13", "14"], correctIndex: 2 },
-  { id: "q6", text: "15 - 8 = ?", options: ["5", "6", "7", "8"], correctIndex: 2 },
-  { id: "q7", text: "3 × 3 = ?", options: ["6", "8", "9", "12"], correctIndex: 2 },
-  { id: "q8", text: "20 ÷ 4 = ?", options: ["4", "5", "6", "7"], correctIndex: 1 },
-  { id: "q9", text: "9 + 9 = ?", options: ["16", "17", "18", "19"], correctIndex: 2 },
-  { id: "q10", text: "11 - 5 = ?", options: ["5", "6", "7", "8"], correctIndex: 1 },
-];
-
-const TIME_PER_QUESTION = 30;
-type Phase = "intro" | "playing" | "result";
 type Mood = "idle" | "happy" | "excited" | "thinking" | "wave" | "sad";
 
-// ============================================================
-// PIP — with sad mood support
-// ============================================================
-function Pip({ mood = "idle", size = 80, prop, flameTop = PAL.accent, flameBottom = "#FFB84D" }: { mood?: Mood; size?: number; prop?: string; flameTop?: string; flameBottom?: string }) {
+function Pip({ mood = "idle", size = 80, prop, flameTop = PAL.accent, flameBottom = "#FFB84D" }: {
+  mood?: Mood; size?: number; prop?: string; flameTop?: string; flameBottom?: string;
+}) {
   const bob = useSharedValue(0);
   const blink = useSharedValue(1);
   const propScale = useSharedValue(0);
-
   useEffect(() => {
     bob.value = withRepeat(withTiming(1, { duration: 2400, easing: Easing.inOut(Easing.ease) }), -1, true);
     blink.value = withRepeat(withSequence(withTiming(0.1, { duration: 100 }), withTiming(1, { duration: 200 }), withDelay(2800, withTiming(1, { duration: 100 }))), -1, false);
   }, []);
-
   useEffect(() => {
     if (prop) { propScale.value = 0; propScale.value = withSpring(1, { damping: 12, stiffness: 300 }); }
     else { propScale.value = withTiming(0, { duration: 200 }); }
   }, [prop]);
-
-  const bodyAnim = useAnimatedStyle(() => ({ transform: [{ translateY: interpolate(bob.value, [0, 1], [0, -5]) }, { rotate: mood === "excited" ? `${interpolate(bob.value, [0, 1], [-4, 4])}deg` : "0deg" }] }));
+  const bodyAnim = useAnimatedStyle(() => ({
+    transform: [{ translateY: interpolate(bob.value, [0, 1], [0, -5]) }, { rotate: mood === "excited" ? `${interpolate(bob.value, [0, 1], [-4, 4])}deg` : "0deg" }],
+  }));
   const eyeAnim = useAnimatedStyle(() => ({ transform: [{ scaleY: blink.value }] }));
   const propAnim = useAnimatedStyle(() => ({ transform: [{ scale: propScale.value }], opacity: propScale.value }));
-
   return (
     <Animated.View style={[bodyAnim, { width: size, height: size * 1.25 }]}>
       <View style={{ position: "absolute", bottom: 0, left: size * 0.32, width: size * 0.36, height: size * 0.32, alignItems: "center" }}>
@@ -122,242 +97,147 @@ function Pip({ mood = "idle", size = 80, prop, flameTop = PAL.accent, flameBotto
   );
 }
 
-// ============================================================
-// MAIN
-// ============================================================
-export default function QuizScreen() {
+export default function QuizPlay() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const total = QUESTIONS.length;
 
-  const [phase, setPhase] = useState<Phase>("intro");
-  const [qIndex, setQIndex] = useState(0);
-  const [selected, setSelected] = useState<number | null>(null);
-  const [answers, setAnswers] = useState<(number | null)[]>(Array(total).fill(null));
-  const [timeLeft, setTimeLeft] = useState(TIME_PER_QUESTION);
-  const [locked, setLocked] = useState(false);
+  const [quiz, setQuiz] = useState<Quiz | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [current, setCurrent] = useState(0);
+  const [answers, setAnswers] = useState<number[]>([]);
+  const [submitted, setSubmitted] = useState(false);
+  const [score, setScore] = useState(0);
+  const [saving, setSaving] = useState(false);
+
   const [mood, setMood] = useState<Mood>("idle");
-  const [message, setMessage] = useState("Ready to start? 🎯");
-
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const advanceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [message, setMessage] = useState("ဖြေဆိုရန် အသင့်ဖြစ်ပါ! ✏️");
   const resetTimer = useRef<any>(null);
-
-  const current = QUESTIONS[qIndex];
 
   const react = (newMood: Mood, msg: string) => {
     if (resetTimer.current) clearTimeout(resetTimer.current);
     setMood(newMood);
     setMessage(msg);
+    resetTimer.current = setTimeout(() => {
+      setMood("idle");
+      setMessage("ဖြေဆိုရန် အသင့်ဖြစ်ပါ! ✏️");
+    }, 2200);
   };
 
-  const score = useMemo(() => {
-    let s = 0;
-    for (let i = 0; i < total; i++) {
-      if (answers[i] !== null && answers[i] === QUESTIONS[i].correctIndex) s++;
-    }
-    return s;
-  }, [answers, total]);
-
   useEffect(() => {
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-      if (advanceTimeoutRef.current) clearTimeout(advanceTimeoutRef.current);
-      if (resetTimer.current) clearTimeout(resetTimer.current);
-    };
-  }, []);
+    (async () => {
+      try {
+        setLoading(true);
+        const q = await getQuiz(id!);
+        if (!q) { Alert.alert("Error", "Quiz မတွေ့ပါ"); router.back(); return; }
+        setQuiz(q);
+        setAnswers(new Array(q.questions.length).fill(-1));
+      } catch (e: any) { Alert.alert("Error", e.message); }
+      finally { setLoading(false); }
+    })();
+  }, [id]);
 
-  const advance = useCallback(
-    (nextAnswers: (number | null)[]) => {
-      if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
-      setQIndex((prev) => {
-        if (prev < total - 1) {
-          setSelected(null);
-          setLocked(false);
-          setMood("idle");
-          setMessage("Next one! 💪");
-          return prev + 1;
-        }
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        setPhase("result");
-        return prev;
-      });
-    },
-    [total]
-  );
+  useEffect(() => () => { if (resetTimer.current) clearTimeout(resetTimer.current); }, []);
 
-  useEffect(() => {
-    if (phase !== "playing" || locked) return;
-    setTimeLeft(TIME_PER_QUESTION);
-    timerRef.current = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
-          setTimeout(() => {
-            const newAnswers = [...answers];
-            newAnswers[qIndex] = null;
-            setAnswers(newAnswers);
-            advance(newAnswers);
-          }, 0);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => { if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; } };
-  }, [qIndex, phase, locked]);
+  const handleSelect = (choiceIndex: number) => {
+    Haptics.selectionAsync();
+    const next = [...answers];
+    next[current] = choiceIndex;
+    setAnswers(next);
+    react("happy", "ရွေးပြီးပါပြီ ✓");
+  };
 
-  const progressAnim = useSharedValue(0);
-  useEffect(() => {
-    progressAnim.value = withTiming(qIndex / total, { duration: 400 });
-  }, [qIndex, total]);
-  const progressStyle = useAnimatedStyle(() => ({ width: `${progressAnim.value * 100}%` }));
-
-  function handleSelect(idx: number) {
-    if (locked || phase !== "playing") return;
+  const handleNext = () => {
+    if (answers[current] === -1) { Alert.alert("ရွေးပါ", "အဖြေ တစ်ခု ရွေးပါ။"); return; }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setSelected(idx);
-    setLocked(true);
-    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
-    const newAnswers = [...answers];
-    newAnswers[qIndex] = idx;
-    setAnswers(newAnswers);
-    const isCorrect = idx === current.correctIndex;
-    react(isCorrect ? "excited" : "thinking", isCorrect ? "Correct! 🎉" : "Almost! 💭");
-    advanceTimeoutRef.current = setTimeout(() => { advance(newAnswers); }, 1200);
-  }
+    if (current < (quiz?.questions.length ?? 0) - 1) { setCurrent(current + 1); }
+    else { handleSubmit(); }
+  };
 
-  function handleSkip() {
-    if (locked) return;
-    const newAnswers = [...answers];
-    newAnswers[qIndex] = null;
-    setAnswers(newAnswers);
-    advance(newAnswers);
-  }
+  const handleBack = () => {
+    if (current > 0) { Haptics.selectionAsync(); setCurrent(current - 1); }
+  };
 
-  function restart() {
-    if (timerRef.current) clearInterval(timerRef.current);
-    if (advanceTimeoutRef.current) clearTimeout(advanceTimeoutRef.current);
-    setPhase("intro");
-    setQIndex(0);
-    setSelected(null);
-    setAnswers(Array(total).fill(null));
-    setLocked(false);
-    setTimeLeft(TIME_PER_QUESTION);
-    setMood("idle");
-    setMessage("Ready to start? 🎯");
-  }
+  const handleSubmit = async () => {
+    if (!quiz) return;
+    const unanswered = answers.findIndex((a) => a === -1);
+    if (unanswered !== -1) {
+      Alert.alert("မဖြေရသေးပါ", `မေးခွန်း ${unanswered + 1} ကို မဖြေရသေးပါ။`);
+      setCurrent(unanswered);
+      return;
+    }
+    setSaving(true);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    let correct = 0;
+    quiz.questions.forEach((q, i) => { if (answers[i] === q.correctIndex) correct++; });
 
-  // ===== INTRO =====
-  if (phase === "intro") {
+    try {
+      await submitAttempt({
+        quizId: quiz.id!, quizTitle: quiz.title, grade: quiz.grade, subject: quiz.subject,
+        score: correct, total: quiz.questions.length, answers,
+      });
+    } catch (e: any) { console.error("Submit error:", e); }
+    finally {
+      setScore(correct);
+      setSubmitted(true);
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
     return (
-      <View style={{ flex: 1, backgroundColor: PAL.bg }}>
-        <LinearGradient colors={[PAL.bgTop, PAL.bg, PAL.bgBottom]} locations={[0, 0.5, 1]} style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }} />
-        <SafeAreaView style={{ flex: 1 }}>
-          <ScrollView contentContainerStyle={{ flexGrow: 1, paddingHorizontal: isTablet ? 48 : 24, justifyContent: "center", paddingVertical: 32, maxWidth: isTablet ? 600 : undefined, alignSelf: "center", width: "100%" }} showsVerticalScrollIndicator={false}>
-            {/* Pip + message */}
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 24 }}>
-              <Pressable onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); react("excited", "Let's go! 🎯"); }}>
-                <Pip mood={mood} size={isTablet ? 90 : 76} prop="🎯" />
-              </Pressable>
-              <Animated.View entering={FadeIn.delay(200)} style={{ flex: 1 }}>
-                <Text style={{ fontFamily: FONT.semibold, fontSize: 14, color: PAL.textMuted, lineHeight: 20 }}>{message}</Text>
-              </Animated.View>
-            </View>
-
-            <Text style={{ fontFamily: FONT.extrabold, fontSize: isTablet ? 40 : 30, color: PAL.text, letterSpacing: -1, lineHeight: isTablet ? 46 : 38 }}>
-              Quiz {id?.replace("q", "") ?? "1"}
-            </Text>
-            <Text style={{ fontFamily: FONT.semibold, fontSize: 14, color: PAL.textMuted, marginTop: 8 }}>
-              {total} ပုစ္ဆာ · တစ်ပုဒ်လျှင် {TIME_PER_QUESTION} စက္ကန့်
-            </Text>
-
-            <View style={{ height: 1, backgroundColor: PAL.divider, marginTop: 24, marginBottom: 12 }} />
-
-            <Text style={{ fontFamily: FONT.extrabold, fontSize: 11, color: PAL.textMuted, letterSpacing: 1.5, marginBottom: 10 }}>
-              စည်းမျဉ်းများ
-            </Text>
-            {[
-              "✅ မှန်ကန်တဲ့ အဖြေကို ရွေးပါ",
-              "⏱️ အချိန်ကုန်ရင် အလိုအလျောက် ကျော်သွားမယ်",
-              "🏆 ပြီးဆုံးရင် ရမှတ်ကို ပြပါမယ်",
-            ].map((r, i) => (
-              <View key={i} style={{ flexDirection: "row", paddingVertical: 10 }}>
-                <Text style={{ fontFamily: FONT.extrabold, fontSize: 11, color: PAL.textMuted, letterSpacing: 1, width: 28 }}>
-                  {String(i + 1).padStart(2, "0")}
-                </Text>
-                <Text style={{ flex: 1, fontFamily: FONT.semibold, fontSize: 13, color: PAL.text }}>{r}</Text>
-              </View>
-            ))}
-
-            <Pressable
-              onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); setPhase("playing"); setMood("excited"); setMessage("Here we go! 🚀"); }}
-              style={{ marginTop: 32, backgroundColor: PAL.primary, borderRadius: 999, paddingVertical: 16, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 8 }}
-            >
-              <Text style={{ fontSize: 16, color: "#FFFFFF" }}>🚀</Text>
-              <Text style={{ fontFamily: FONT.extrabold, fontSize: 15, color: "#FFFFFF" }}>စတင်မယ်</Text>
-            </Pressable>
-
-            <Pressable onPress={() => router.back()} style={{ marginTop: 16, paddingVertical: 12, alignItems: "center" }}>
-              <Text style={{ fontFamily: FONT.semibold, fontSize: 13, color: PAL.textMuted }}>ပြန်ထွက်မယ်</Text>
-            </Pressable>
-          </ScrollView>
-        </SafeAreaView>
+      <View style={{ flex: 1, backgroundColor: PAL.bg, alignItems: "center", justifyContent: "center" }}>
+        <ActivityIndicator color={PAL.primary} size="large" />
       </View>
     );
   }
 
-  // ===== RESULT =====
-  if (phase === "result") {
-    const pct = Math.round((score / total) * 100);
-    const passed = pct >= 60;
+  if (!quiz) return null;
+
+  const meta = SUBJECT_META[quiz.subject] ?? SUBJECT_META.math;
+
+  // ===== Result Screen =====
+  if (submitted) {
+    const total = quiz.questions.length;
+    const percent = Math.round((score / total) * 100);
+    const isGuest = !auth.currentUser;
+    const resultMood: Mood = percent >= 80 ? "excited" : percent >= 50 ? "happy" : "sad";
+    const emoji = percent >= 80 ? "🏆" : percent >= 50 ? "🎉" : "💪";
+    const message = percent >= 80 ? "အလွန်ကောင်းတယ်!" : percent >= 50 ? "ကောင်းတယ်! ဆက်ကြိုးစားပါ" : "ထပ်ကြိုးစားပါ!";
+    const flameTop = `${meta.color}99`;
+    const flameBottom = meta.color;
+
     return (
       <View style={{ flex: 1, backgroundColor: PAL.bg }}>
-        <LinearGradient colors={[PAL.bgTop, PAL.bg, PAL.bgBottom]} locations={[0, 0.5, 1]} style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }} />
+        <LinearGradient colors={[PAL.bgTop, PAL.bg, PAL.bgBottom]} locations={[0, 0.5, 1]} style={StyleSheet.absoluteFill} />
         <SafeAreaView style={{ flex: 1 }}>
-          <ScrollView contentContainerStyle={{ flexGrow: 1, paddingHorizontal: isTablet ? 48 : 24, justifyContent: "center", paddingVertical: 32, maxWidth: isTablet ? 600 : undefined, alignSelf: "center", width: "100%" }} showsVerticalScrollIndicator={false}>
-            <Animated.View entering={FadeInDown.springify()}>
-              {/* Pip celebration */}
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 24 }}>
-                <Pressable onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); react(passed ? "excited" : "thinking", passed ? "Amazing! 🏆" : "Keep trying! 💪"); }}>
-                  <Pip mood={passed ? "excited" : "thinking"} size={isTablet ? 90 : 76} prop={passed ? "🏆" : "💪"} flameTop={passed ? "#FFE9A0" : "#C8C8C8"} flameBottom={passed ? "#FFD93D" : "#A0A0A0"} />
-                </Pressable>
-                <Animated.View entering={FadeIn.delay(200)} style={{ flex: 1 }}>
-                  <Text style={{ fontFamily: FONT.extrabold, fontSize: isTablet ? 30 : 24, color: PAL.text, letterSpacing: -0.8, lineHeight: isTablet ? 36 : 30 }}>
-                    {passed ? "ဂုဏ်ယူပါတယ်!" : "ထပ်ကြိုးစားပါ!"}
+          <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: 40, maxWidth: isTablet ? 600 : undefined, alignSelf: "center", width: "100%" }}>
+            <Animated.View entering={FadeIn.delay(100)} style={{ alignItems: "center", marginTop: 24 }}>
+              <Pip mood={resultMood} size={isTablet ? 140 : 120} prop={emoji} flameTop={flameTop} flameBottom={flameBottom} />
+              <Text style={{ fontFamily: FONT.extrabold, fontSize: 28, color: PAL.text, marginTop: 20 }}>{message}</Text>
+              <Text style={{ fontFamily: FONT.semibold, fontSize: 14, color: PAL.textMuted, marginTop: 8, textAlign: "center" }}>{quiz.title}</Text>
+
+              <View style={{ marginTop: 32, backgroundColor: "#FFF", borderRadius: 24, padding: 32, alignItems: "center", width: "100%", borderWidth: 1.5, borderColor: PAL.divider }}>
+                <Text style={{ fontFamily: FONT.extrabold, fontSize: 64, color: meta.darkColor, letterSpacing: -2 }}>{score}</Text>
+                <Text style={{ fontFamily: FONT.semibold, fontSize: 14, color: PAL.textMuted, marginTop: 4 }}>/ {total} မှတ်</Text>
+                <View style={{ marginTop: 16, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 999, backgroundColor: percent >= 50 ? PAL.success + "20" : PAL.danger + "20" }}>
+                  <Text style={{ fontFamily: FONT.extrabold, fontSize: 16, color: percent >= 50 ? PAL.success : PAL.danger }}>{percent}%</Text>
+                </View>
+              </View>
+
+              {isGuest && (
+                <View style={{ marginTop: 16, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 12, backgroundColor: PAL.accent + "20", borderWidth: 1.5, borderColor: PAL.accent, flexDirection: "row", alignItems: "center", gap: 8, width: "100%" }}>
+                  <Text style={{ fontSize: 16 }}>💡</Text>
+                  <Text style={{ flex: 1, fontFamily: FONT.semibold, fontSize: 12, color: PAL.textMuted, lineHeight: 18 }}>
+                    Guest mode — အမှတ်ကို သိမ်းမထားပါဘူး။ Leaderboard မှာ ပါချင်ရင် Login ဝင်ပါ။
                   </Text>
-                  <Text style={{ fontFamily: FONT.semibold, fontSize: 13, color: PAL.textMuted, marginTop: 4 }}>
-                    {score} / {total} မှန် ({pct}%)
-                  </Text>
-                </Animated.View>
-              </View>
-
-              <View style={{ height: 1, backgroundColor: PAL.divider, marginBottom: 16 }} />
-
-              <View style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 12 }}>
-                <Text style={{ fontFamily: FONT.extrabold, fontSize: 13, color: PAL.textMuted }}>မှန်သော အဖြေ</Text>
-                <Text style={{ fontFamily: FONT.extrabold, fontSize: 15, color: PAL.success }}>{score} မှန်</Text>
-              </View>
-              <View style={{ height: 1, backgroundColor: PAL.divider }} />
-              <View style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 12 }}>
-                <Text style={{ fontFamily: FONT.extrabold, fontSize: 13, color: PAL.textMuted }}>မှားသော အဖြေ</Text>
-                <Text style={{ fontFamily: FONT.extrabold, fontSize: 15, color: PAL.danger }}>{total - score} မှား</Text>
-              </View>
-
-              <View style={{ height: 8, backgroundColor: PAL.divider, borderRadius: 4, overflow: "hidden", marginTop: 16 }}>
-                <LinearGradient colors={passed ? ["#4ECDC4", "#4055DC"] : ["#FFAE9C", "#FF8066"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ width: `${pct}%`, height: "100%", borderRadius: 4 }} />
-              </View>
+                </View>
+              )}
 
               <Pressable
-                onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); restart(); }}
-                style={{ marginTop: 28, backgroundColor: PAL.primary, borderRadius: 999, paddingVertical: 16, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 8 }}
+                onPress={() => { Haptics.selectionAsync(); router.back(); }}
+                style={{ marginTop: 32, backgroundColor: PAL.primary, borderRadius: 999, paddingVertical: 16, paddingHorizontal: 48, alignItems: "center" }}
               >
-                <Text style={{ fontSize: 16, color: "#FFFFFF" }}>🔄</Text>
-                <Text style={{ fontFamily: FONT.extrabold, fontSize: 15, color: "#FFFFFF" }}>ပြန်ကစားမယ်</Text>
-              </Pressable>
-
-              <Pressable onPress={() => router.back()} style={{ marginTop: 12, paddingVertical: 16, alignItems: "center" }}>
-                <Text style={{ fontFamily: FONT.extrabold, fontSize: 13, color: PAL.textMuted }}>ပြန်ထွက်မယ်</Text>
+                <Text style={{ fontFamily: FONT.extrabold, fontSize: 15, color: "#FFF" }}>ပြန်သွားမယ်</Text>
               </Pressable>
             </Animated.View>
           </ScrollView>
@@ -366,116 +246,102 @@ export default function QuizScreen() {
     );
   }
 
-  // ===== PLAYING =====
-  const timeColor = timeLeft <= 5 ? PAL.danger : timeLeft <= 10 ? PAL.accentDark : PAL.secondary;
+  // ===== Play Screen =====
+  const q = quiz.questions[current];
+  const total = quiz.questions.length;
+  const progress = ((current + 1) / total) * 100;
+  const selected = answers[current];
+  const flameTop = `${meta.color}99`;
+  const flameBottom = meta.color;
 
   return (
     <View style={{ flex: 1, backgroundColor: PAL.bg }}>
-      <LinearGradient colors={[PAL.bgTop, PAL.bg, PAL.bgBottom]} locations={[0, 0.5, 1]} style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }} />
+      <LinearGradient colors={[PAL.bgTop, PAL.bg, PAL.bgBottom]} locations={[0, 0.5, 1]} style={StyleSheet.absoluteFill} />
       <SafeAreaView style={{ flex: 1 }}>
-        <View style={{ paddingHorizontal: isTablet ? 48 : 24, paddingTop: 12, maxWidth: isTablet ? 600 : undefined, alignSelf: "center", width: "100%" }}>
+        <View style={{ flex: 1, paddingHorizontal: isTablet ? 48 : 24, maxWidth: isTablet ? 600 : undefined, alignSelf: "center", width: "100%" }}>
           {/* Top bar */}
-          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 12 }}>
             <Pressable
-              onPress={() => router.back()}
+              onPress={() => {
+                Alert.alert("ထွက်မလား?", "ဖြေထားတာ ပျက်သွားမယ်", [
+                  { text: "မထွက်ဘူး", style: "cancel" },
+                  { text: "ထွက်မယ်", style: "destructive", onPress: () => router.back() },
+                ]);
+              }}
               style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}
             >
-              <Text style={{ fontSize: 22, color: PAL.text }}>←</Text>
+              <Text style={{ fontSize: 22, color: PAL.text }}>✕</Text>
             </Pressable>
-            <Text style={{ fontFamily: FONT.extrabold, fontSize: 14, color: PAL.text, letterSpacing: 0.5 }}>
-              {qIndex + 1} / {total}
+            <Text style={{ fontFamily: FONT.extrabold, fontSize: 12, letterSpacing: 2, color: PAL.textMuted }}>
+              {current + 1} / {total}
             </Text>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-              <Text style={{ fontSize: 14 }}>⏱️</Text>
-              <Text style={{ fontFamily: FONT.extrabold, fontSize: 15, color: timeColor, minWidth: 24, textAlign: "center" }}>
-                {timeLeft}
-              </Text>
-            </View>
           </View>
 
-          <View style={{ height: 6, backgroundColor: PAL.divider, borderRadius: 3, marginTop: 16, overflow: "hidden" }}>
-            <Animated.View style={[{ height: "100%", borderRadius: 3, backgroundColor: PAL.primary }, progressStyle]} />
-          </View>
-
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 20 }}>
-            <Pip mood={mood} size={isTablet ? 60 : 52} prop="🎯" flameTop={timeColor + "99"} flameBottom={timeColor} />
-            <Animated.View entering={FadeIn} style={{ flex: 1 }}>
-              <Text style={{ fontFamily: FONT.semibold, fontSize: 13, color: PAL.textMuted, lineHeight: 19 }}>{message}</Text>
+          {/* Pip + message */}
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginTop: 12, marginBottom: 12 }}>
+            <Pressable onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); react("excited", "ဆက်လုပ်ပါ! 💪"); }}>
+              <Pip mood={mood} size={isTablet ? 76 : 64} prop={meta.emoji} flameTop={flameTop} flameBottom={flameBottom} />
+            </Pressable>
+            <Animated.View entering={FadeIn.delay(200)} style={{ flex: 1 }}>
+              <Text style={{ fontFamily: FONT.semibold, fontSize: 13, color: PAL.textMuted, lineHeight: 18 }}>{message}</Text>
             </Animated.View>
           </View>
-        </View>
 
-        <ScrollView
-          contentContainerStyle={{ flexGrow: 1, paddingHorizontal: isTablet ? 48 : 24, paddingTop: 20, paddingBottom: 40, maxWidth: isTablet ? 600 : undefined, alignSelf: "center", width: "100%" }}
-          showsVerticalScrollIndicator={false}
-        >
-          <Animated.View key={qIndex} entering={SlideInRight.springify()}>
-            <Text
-              style={{
-                fontFamily: FONT.extrabold,
-                fontSize: isTablet ? 44 : 36,
-                color: PAL.text,
-                textAlign: "center",
-                letterSpacing: -1,
-                paddingVertical: 32,
-              }}
-            >
-              {current.text}
-            </Text>
+          {/* Progress bar */}
+          <View style={{ height: 6, backgroundColor: PAL.divider, borderRadius: 3, overflow: "hidden" }}>
+            <Animated.View style={{ width: `${progress}%`, height: "100%", backgroundColor: meta.darkColor }} />
+          </View>
 
-            <View style={{ gap: 2 }}>
-              {current.options.map((opt, i) => {
-                const isSelected = selected === i;
-                const isCorrect = i === current.correctIndex;
-                const showCorrect = locked && isCorrect;
-                const showWrong = locked && isSelected && !isCorrect;
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+            <Animated.View key={current} entering={FadeInDown.springify()}>
+              <Text style={{ fontFamily: FONT.extrabold, fontSize: isTablet ? 26 : 20, color: PAL.text, marginTop: 24, lineHeight: isTablet ? 34 : 28 }}>
+                {q.question}
+              </Text>
 
-                let bgColor = "transparent";
-                let textColor = PAL.text;
-                let dotColor = PAL.divider;
-                if (showCorrect) { bgColor = PAL.successBg; textColor = PAL.success; dotColor = PAL.secondary; }
-                else if (showWrong) { bgColor = PAL.dangerBg; textColor = PAL.danger; dotColor = PAL.danger; }
-                else if (isSelected) { bgColor = PAL.primary + "15"; textColor = PAL.primary; dotColor = PAL.primary; }
-
-                return (
-                  <Animated.View key={i} entering={FadeInDown.delay(i * 60).springify()}>
+              <View style={{ marginTop: 20, gap: 10 }}>
+                {q.choices.map((choice, i) => {
+                  const isSelected = selected === i;
+                  return (
                     <Pressable
+                      key={i}
                       onPress={() => handleSelect(i)}
-                      disabled={locked}
                       style={{
-                        backgroundColor: bgColor,
+                        backgroundColor: isSelected ? meta.color + "22" : "#FFF",
                         borderRadius: 14,
-                        paddingVertical: 18,
-                        paddingHorizontal: 16,
+                        padding: 16,
+                        borderWidth: 2,
+                        borderColor: isSelected ? meta.darkColor : PAL.divider,
                         flexDirection: "row",
                         alignItems: "center",
-                        gap: 14,
-                        marginVertical: 2,
+                        gap: 12,
                       }}
                     >
-                      <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: dotColor, alignItems: "center", justifyContent: "center" }}>
-                        <Text style={{ fontFamily: FONT.extrabold, fontSize: 14, color: showCorrect || showWrong || isSelected ? "#FFFFFF" : PAL.textMuted }}>
+                      <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: isSelected ? meta.darkColor : PAL.divider, alignItems: "center", justifyContent: "center" }}>
+                        <Text style={{ fontFamily: FONT.extrabold, fontSize: 13, color: isSelected ? "#FFF" : PAL.textMuted }}>
                           {String.fromCharCode(65 + i)}
                         </Text>
                       </View>
-                      <Text style={{ fontFamily: FONT.extrabold, fontSize: isTablet ? 24 : 20, color: textColor, flex: 1 }}>
-                        {opt}
-                      </Text>
-                      {showCorrect && <Text style={{ fontSize: 20 }}>✓</Text>}
-                      {showWrong && <Text style={{ fontSize: 20 }}>✗</Text>}
+                      <Text style={{ flex: 1, fontFamily: FONT.semibold, fontSize: 14, color: PAL.text }}>{choice}</Text>
                     </Pressable>
-                  </Animated.View>
-                );
-              })}
-            </View>
+                  );
+                })}
+              </View>
+            </Animated.View>
+          </ScrollView>
 
-            {!locked && (
-              <Pressable onPress={handleSkip} style={{ marginTop: 20, alignItems: "center", paddingVertical: 12 }}>
-                <Text style={{ fontFamily: FONT.extrabold, fontSize: 13, color: PAL.textMuted }}>ကျော်မယ် →</Text>
+          <View style={{ flexDirection: "row", gap: 12, paddingBottom: 20, paddingTop: 12 }}>
+            {current > 0 && (
+              <Pressable onPress={handleBack} style={{ flex: 1, backgroundColor: "#FFF", borderRadius: 999, paddingVertical: 16, alignItems: "center", borderWidth: 2, borderColor: PAL.divider }}>
+                <Text style={{ fontFamily: FONT.extrabold, fontSize: 15, color: PAL.text }}>← နောက်သွား</Text>
               </Pressable>
             )}
-          </Animated.View>
-        </ScrollView>
+            <Pressable onPress={handleNext} disabled={saving} style={{ flex: 2, backgroundColor: PAL.primary, borderRadius: 999, paddingVertical: 16, alignItems: "center", opacity: saving ? 0.6 : 1 }}>
+              <Text style={{ fontFamily: FONT.extrabold, fontSize: 15, color: "#FFF" }}>
+                {saving ? "သိမ်းနေသည်..." : current === total - 1 ? "အမှတ်ယူမယ် 🎯" : "ရှေ့သွား →"}
+              </Text>
+            </Pressable>
+          </View>
+        </View>
       </SafeAreaView>
     </View>
   );

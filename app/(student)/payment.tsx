@@ -1,7 +1,6 @@
 import { View, Text, Dimensions, Pressable, ScrollView, TextInput } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { useTranslation } from "react-i18next";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
@@ -622,13 +621,30 @@ export default function PaymentScreen() {
             width: "100%",
           }}
         >
+          {/* Back button */}
+          <Pressable
+            onPress={() => {
+              Haptics.selectionAsync();
+              router.back();
+            }}
+            style={{
+              width: 40,
+              height: 40,
+              alignItems: "center",
+              justifyContent: "center",
+              marginTop: 8,
+            }}
+          >
+            <Text style={{ fontSize: 22, color: PAL.text }}>←</Text>
+          </Pressable>
+
           {/* Pip + message */}
           <View
             style={{
               flexDirection: "row",
               alignItems: "center",
               gap: 12,
-              marginTop: 12,
+              marginTop: 4,
               marginBottom: 20,
             }}
           >

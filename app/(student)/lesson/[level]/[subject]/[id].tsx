@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, Dimensions, Pressable } from "react-native";
+import { View, Text, ScrollView, Dimensions, Pressable, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { WebView } from "react-native-webview";
@@ -19,6 +19,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useEffect, useState, useRef } from "react";
 import { FONT } from "@/lib/design";
+import { getLesson, Lesson } from "@/lib/lessons-service";
 
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
@@ -38,11 +39,22 @@ const PAL = {
   divider: "#EDE3D8",
 };
 
+// Helper to extract YouTube ID from URL
+function extractYoutubeId(input: string): string | null {
+  if (!input) return null;
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
+    /^([a-zA-Z0-9_-]{11})$/,
+  ];
+  for (const p of patterns) {
+    const m = input.match(p);
+    if (m) return m[1];
+  }
+  return null;
+}
+
 type Mood = "idle" | "happy" | "excited" | "thinking" | "wave";
 
-// ============================================================
-// PIP
-// ============================================================
 function Pip({ mood = "idle", size = 80, prop, flameTop = PAL.accent, flameBottom = "#FFB84D" }: { mood?: Mood; size?: number; prop?: string; flameTop?: string; flameBottom?: string }) {
   const bob = useSharedValue(0);
   const blink = useSharedValue(1);
@@ -90,9 +102,6 @@ function Pip({ mood = "idle", size = 80, prop, flameTop = PAL.accent, flameBotto
   );
 }
 
-// ============================================================
-// CONTENT SECTION ROW
-// ============================================================
 function ContentRow({
   index,
   heading,
@@ -141,31 +150,49 @@ function ContentRow({
   );
 }
 
-// ============================================================
-// MAIN
-// ============================================================
 export default function StudentLessonDetail() {
   const router = useRouter();
   const { level, subject, id } = useLocalSearchParams<{ level: string; subject: string; id: string }>();
-  const lessonNum = (id ?? "l1").replace("l", "");
-  const videoId = "DDhdFSIW-MA";
+  const [lesson, setLesson] = useState<Lesson | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const [mood, setMood] = useState<Mood>("idle");
   const [message, setMessage] = useState("Watch the video, then read below! 📺");
   const [activeIdx, setActiveIdx] = useState<number | null>(null);
   const resetTimer = useRef<any>(null);
 
-  const content = [
-    { h: "၁။ အခြေခံ သဘောတရား", p: "ဒီသင်ခန်းစာမှာ အခြေခံ အယူအဆတွေကို လေ့လာပါမယ်။", reaction: "Basics first! 🌱" },
-    { h: "၂။ ဥပမာများ", p: "ဗီဒီယိုထဲက ဥပမာတွေကို ကြည့်ပြီး ကိုယ်တိုင် လေ့ကျင့်ပါ။", reaction: "Examples help! 💡" },
-    { h: "၃။ လေ့ကျင့်ခန်း", p: "အောက်က Quiz ကို ဖြေပြီး နားလည်မှုကို စမ်းသပ်ပါ။", reaction: "Time to practice! 🎯" },
-  ];
+  useEffect(() => {
+    (async () => {
+      if (!id) return;
+      try {
+        setLoading(true);
+        const l = await getLesson(id);
+        setLesson(l);
+      } catch (e) {
+        console.log("❌ Load lesson error:", e);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [id]);
+
+  const videoId = lesson ? extractYoutubeId(lesson.youtubeUrl) : null;
+
+  const contentBlocks = lesson?.content
+    ? [
+        { h: "အကြောင်းအရာ", p: lesson.content, reaction: "Read carefully! 📖" },
+      ]
+    : [
+        { h: "၁။ အခြေခံ သဘောတရား", p: "ဒီသင်ခန်းစာမှာ အခြေခံ အယူအဆတွေကို လေ့လာပါမယ်။", reaction: "Basics first! 🌱" },
+        { h: "၂။ ဥပမာများ", p: "ဗီဒီယိုထဲက ဥပမာတွေကို ကြည့်ပြီး ကိုယ်တိုင် လေ့ကျင့်ပါ။", reaction: "Examples help! 💡" },
+        { h: "၃။ လေ့ကျင့်ခန်း", p: "အောက်က Quiz ကို ဖြေပြီး နားလည်မှုကို စမ်းသပ်ပါ။", reaction: "Time to practice! 🎯" },
+      ];
 
   const react = (idx: number) => {
     if (resetTimer.current) clearTimeout(resetTimer.current);
     setActiveIdx(idx);
     setMood("excited");
-    setMessage(content[idx].reaction);
+    setMessage(contentBlocks[idx].reaction);
     resetTimer.current = setTimeout(() => {
       setMood("idle");
       setMessage("Watch the video, then read below! 📺");
@@ -175,7 +202,33 @@ export default function StudentLessonDetail() {
 
   useEffect(() => { return () => { if (resetTimer.current) clearTimeout(resetTimer.current); }; }, []);
 
-  const html = `
+  if (loading) {
+    return (
+      <View style={{ flex: 1, backgroundColor: PAL.bg, alignItems: "center", justifyContent: "center" }}>
+        <ActivityIndicator color={PAL.primary} size="large" />
+      </View>
+    );
+  }
+
+  if (!lesson) {
+    return (
+      <View style={{ flex: 1, backgroundColor: PAL.bg, alignItems: "center", justifyContent: "center", padding: 24 }}>
+        <Text style={{ fontSize: 64 }}>😔</Text>
+        <Text style={{ fontFamily: FONT.extrabold, fontSize: 18, color: PAL.text, marginTop: 16 }}>
+          သင်ခန်းစာ မတွေ့ပါ
+        </Text>
+        <Pressable
+          onPress={() => router.back()}
+          style={{ marginTop: 20, backgroundColor: PAL.primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 999 }}
+        >
+          <Text style={{ fontFamily: FONT.extrabold, color: "#FFF" }}>ပြန်ထွက်မယ်</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+  const html = videoId
+    ? `
     <!DOCTYPE html>
     <html>
       <head>
@@ -192,27 +245,36 @@ export default function StudentLessonDetail() {
           allowfullscreen></iframe>
       </body>
     </html>
-  `;
+  `
+    : "";
 
   return (
     <View style={{ flex: 1, backgroundColor: PAL.bg }}>
       <LinearGradient colors={[PAL.bgTop, PAL.bg, PAL.bgBottom]} locations={[0, 0.5, 1]} style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }} />
       <SafeAreaView style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
-          {/* Video zone */}
           <View style={{ width: "100%", aspectRatio: 16 / 9, backgroundColor: "#000", position: "relative" }}>
-            <WebView
-              originWhitelist={["*"]}
-              source={{ html, baseUrl: "https://www.youtube-nocookie.com" }}
-              style={{ flex: 1, backgroundColor: "#000" }}
-              allowsInlineMediaPlayback
-              mediaPlaybackRequiresUserAction={false}
-              javaScriptEnabled
-              domStorageEnabled
-              sharedCookiesEnabled
-              thirdPartyCookiesEnabled
-              mixedContentMode="always"
-            />
+            {videoId ? (
+              <WebView
+                originWhitelist={["*"]}
+                source={{ html, baseUrl: "https://www.youtube-nocookie.com" }}
+                style={{ flex: 1, backgroundColor: "#000" }}
+                allowsInlineMediaPlayback
+                mediaPlaybackRequiresUserAction={false}
+                javaScriptEnabled
+                domStorageEnabled
+                sharedCookiesEnabled
+                thirdPartyCookiesEnabled
+                mixedContentMode="always"
+              />
+            ) : (
+              <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+                <Text style={{ fontSize: 48 }}>🎬</Text>
+                <Text style={{ fontFamily: FONT.semibold, color: "#FFFFFF", marginTop: 8, fontSize: 13 }}>
+                  Video မရှိပါ
+                </Text>
+              </View>
+            )}
             <Pressable
               onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.back(); }}
               style={{ position: "absolute", top: 12, left: 12, width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.9)", alignItems: "center", justifyContent: "center" }}
@@ -222,9 +284,8 @@ export default function StudentLessonDetail() {
           </View>
 
           <View style={{ paddingHorizontal: isTablet ? 48 : 24, maxWidth: isTablet ? 600 : undefined, alignSelf: "center", width: "100%" }}>
-            {/* Pip + message */}
             <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginTop: 20, marginBottom: 20 }}>
-              <Pressable onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); react(0); }}>
+              <Pressable onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); if (contentBlocks.length > 0) react(0); }}>
                 <Pip mood={mood} size={isTablet ? 80 : 68} prop="📖" />
               </Pressable>
               <Animated.View entering={FadeIn.delay(200)} style={{ flex: 1 }}>
@@ -232,25 +293,23 @@ export default function StudentLessonDetail() {
               </Animated.View>
             </View>
 
-            {/* Title */}
             <Animated.View entering={FadeInDown.delay(100).springify()}>
               <Text style={{ fontFamily: FONT.extrabold, fontSize: isTablet ? 34 : 26, color: PAL.text, letterSpacing: -0.8, lineHeight: isTablet ? 40 : 32 }}>
-                သင်ခန်းစာ {lessonNum}
+                {lesson.title}
               </Text>
               <Text style={{ fontFamily: FONT.semibold, fontSize: 12, color: PAL.textMuted, letterSpacing: 1.5, marginTop: 6 }}>
                 {level?.toUpperCase()} · {subject?.toUpperCase()}
+                {lesson.isPremium && " · ⭐ PREMIUM"}
               </Text>
             </Animated.View>
 
             <View style={{ height: 1, backgroundColor: PAL.divider, marginTop: 20, marginBottom: 8 }} />
 
-            {/* Section label */}
             <Text style={{ fontFamily: FONT.extrabold, fontSize: 11, color: PAL.textMuted, letterSpacing: 1.5, marginTop: 12, marginBottom: 8 }}>
               📖 အကြောင်းအရာ
             </Text>
 
-            {/* Content rows */}
-            {content.map((b, i) => (
+            {contentBlocks.map((b, i) => (
               <View key={i}>
                 <ContentRow
                   index={i}
@@ -259,11 +318,10 @@ export default function StudentLessonDetail() {
                   isActive={activeIdx === i}
                   onHover={() => react(i)}
                 />
-                {i < content.length - 1 && <View style={{ height: 1, backgroundColor: PAL.divider }} />}
+                {i < contentBlocks.length - 1 && <View style={{ height: 1, backgroundColor: PAL.divider }} />}
               </View>
             ))}
 
-            {/* Quiz button */}
             <Animated.View entering={FadeInDown.delay(400).springify()}>
               <Pressable
                 onPress={() => {

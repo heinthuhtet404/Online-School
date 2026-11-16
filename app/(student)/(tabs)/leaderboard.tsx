@@ -1,4 +1,4 @@
-import { View, Text, Dimensions, Pressable, ScrollView } from "react-native";
+import { View, Text, Dimensions, Pressable, ScrollView, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useBottomTabBarHeight } from "expo-router/js-tabs";
 import { useTranslation } from "react-i18next";
@@ -19,6 +19,12 @@ import Animated, {
   interpolate,
 } from "react-native-reanimated";
 import { FONT } from "@/lib/design";
+import { auth } from "@/lib/firebase";
+import {
+  getLeaderboard,
+  getMyRank,
+  LeaderboardEntry,
+} from "@/lib/attempts-service";
 
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
@@ -32,17 +38,13 @@ const PAL = {
   divider: "#EDE3D8",
 };
 
-type Player = { id: string; name: string; avatar: string; score: number; isYou?: boolean };
-
-const WEEK: Player[] = [
-  { id: "1", name: "Aung Aung", avatar: "🦊", score: 1250 },
-  { id: "2", name: "Su Su", avatar: "🐬", score: 1180 },
-  { id: "3", name: "Kyaw Kyaw", avatar: "🦉", score: 990 },
-  { id: "4", name: "Mya Mya", avatar: "🐣", score: 870 },
-  { id: "5", name: "Zin Zin", avatar: "🚀", score: 760 },
-  { id: "you", name: "You", avatar: "😎", score: 620, isYou: true },
-  { id: "6", name: "Thura", avatar: "🌱", score: 540 },
-];
+// Avatar emoji pool (uid ကနေ deterministic ရွေး)
+const AVATARS = ["🦊", "🐬", "🦉", "🐣", "🚀", "🌱", "🐼", "🦁", "🐯", "🐸"];
+const avatarFor = (uid: string) => {
+  let hash = 0;
+  for (let i = 0; i < uid.length; i++) hash = (hash + uid.charCodeAt(i)) % 1000;
+  return AVATARS[hash % AVATARS.length];
+};
 
 type Mood = "idle" | "happy" | "excited" | "thinking" | "wave";
 
@@ -98,11 +100,15 @@ const medal = (i: number) => (i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "�
 export default function Leaderboard() {
   const { t } = useTranslation();
   const tabBarHeight = useBottomTabBarHeight();
-  const [tab, setTab] = useState<"week" | "all">("week");
-  const data = tab === "week" ? WEEK : [...WEEK].sort((a, b) => b.score - a.score);
+
+  const [data, setData] = useState<LeaderboardEntry[]>([]);
+  const [myRank, setMyRank] = useState<{ rank: number; totalScore: number; total: number } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<"week" | "all">("all");
   const [mood, setMood] = useState<Mood>("idle");
-  const [message, setMessage] = useState("You're #6 this week — keep climbing! 💪");
+  const [message, setMessage] = useState("တိုးတက်အောင် ကြိုးစားပါ! 💪");
   const resetTimer = useRef<any>(null);
+  const myUid = auth.currentUser?.uid;
 
   const react = (msg: string) => {
     if (resetTimer.current) clearTimeout(resetTimer.current);
@@ -110,12 +116,53 @@ export default function Leaderboard() {
     setMessage(msg);
     resetTimer.current = setTimeout(() => {
       setMood("idle");
-      setMessage(tab === "week" ? "You're #6 this week — keep climbing! 💪" : "All-time rankings! 🏆");
+      setMessage(
+        myRank
+          ? `သင့်အဆင့် #${myRank.rank} — ဆက်တက်ပါ! 💪`
+          : "တိုးတက်အောင် ကြိုးစားပါ! 💪"
+      );
     }, 2200);
   };
 
-  const youIndex = data.findIndex((p) => p.isYou);
-  const top3 = [data[1], data[0], data[2]].filter(Boolean);
+  // ===== Load leaderboard =====
+  useEffect(() => {
+    (async () => {
+      try {
+        setLoading(true);
+        const [board, rank] = await Promise.all([
+          getLeaderboard(50),
+          getMyRank(),
+        ]);
+        // Week နဲ့ All ကို ခေတ္တ အတူတူ ထား (နောက်မှ week filter ထည့်လို့ ရ)
+        setData(board);
+        setMyRank(rank);
+        if (rank && rank.rank > 0) {
+          setMessage(`သင့်အဆင့် #${rank.rank} — ဆက်တက်ပါ! 💪`);
+        }
+      } catch (e: any) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (resetTimer.current) clearTimeout(resetTimer.current);
+    };
+  }, []);
+
+  const youIndex = data.findIndex((p) => p.uid === myUid);
+  const top3 = data.length >= 3 ? [data[1], data[0], data[2]] : data.slice(0, 3);
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, backgroundColor: PAL.bg, alignItems: "center", justifyContent: "center" }}>
+        <ActivityIndicator color={PAL.primary} size="large" />
+      </View>
+    );
+  }
 
   return (
     <View style={{ flex: 1, backgroundColor: PAL.bg }}>
@@ -127,8 +174,8 @@ export default function Leaderboard() {
           </Text>
 
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginTop: 12, marginBottom: 20 }}>
-            <Pressable onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); react("You can do it! 🎉"); }}>
-              <Pip mood={mood} size={isTablet ? 80 : 68} prop={youIndex < 3 ? "🏅" : "💪"} />
+            <Pressable onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); react("အကောင်းဆုံး ဖြစ်အောင်! 🎉"); }}>
+              <Pip mood={mood} size={isTablet ? 80 : 68} prop={youIndex >= 0 && youIndex < 3 ? "🏅" : "💪"} />
             </Pressable>
             <Animated.View entering={FadeIn.delay(200)} style={{ flex: 1 }}>
               <Text style={{ fontFamily: FONT.semibold, fontSize: 14, color: PAL.textMuted, lineHeight: 20 }}>{message}</Text>
@@ -144,7 +191,7 @@ export default function Leaderboard() {
                   onPress={() => {
                     Haptics.selectionAsync();
                     setTab(k);
-                    react(k === "week" ? "This week's stars! ⭐" : "All-time champions! 🏆");
+                    react(k === "week" ? "ဒီတစ်ပတ် ကြယ်ပွင့်များ! ⭐" : "အချိန်တိုင်း ချန်ပီယံများ! 🏆");
                   }}
                   style={{
                     paddingHorizontal: 16,
@@ -167,52 +214,73 @@ export default function Leaderboard() {
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: tabBarHeight + 24 }}
           >
-            <View style={{ flexDirection: "row", justifyContent: "space-around", alignItems: "flex-end", marginBottom: 20, paddingTop: 8 }}>
-              {top3.map((p, i) => {
-                const realIdx = data.findIndex((x) => x.id === p.id);
-                const h = realIdx === 0 ? 120 : realIdx === 1 ? 90 : 75;
-                return (
-                  <Animated.View key={p.id} entering={FadeInDown.delay(i * 100).springify()} style={{ alignItems: "center", flex: 1 }}>
-                    <Text style={{ fontSize: realIdx === 0 ? 40 : 30 }}>{p.avatar}</Text>
-                    <Text numberOfLines={1} style={{ fontFamily: FONT.extrabold, fontSize: 11, color: PAL.text, marginTop: 6, marginBottom: 6 }}>{p.name}</Text>
-                    <View style={{ width: 1, height: h, backgroundColor: realIdx === 0 ? PAL.accent : realIdx === 1 ? "#C8C8DC" : "#E0A87C", marginBottom: 4 }} />
-                    <Text style={{ fontSize: 18 }}>{medal(realIdx)}</Text>
-                    <Text style={{ fontFamily: FONT.extrabold, fontSize: 13, color: PAL.text, marginTop: 2 }}>{p.score}</Text>
-                  </Animated.View>
-                );
-              })}
-            </View>
+            {data.length === 0 ? (
+              <View style={{ alignItems: "center", paddingVertical: 60 }}>
+                <Text style={{ fontSize: 56 }}>🏆</Text>
+                <Text style={{ fontFamily: FONT.extrabold, fontSize: 16, color: PAL.text, marginTop: 12 }}>
+                  အဆင့် မရှိသေးပါ
+                </Text>
+                <Text style={{ fontFamily: FONT.semibold, fontSize: 12, color: PAL.textMuted, marginTop: 6, textAlign: "center" }}>
+                  Quiz ဖြေပြီး အဆင့်တက်ပါ!
+                </Text>
+              </View>
+            ) : (
+              <>
+                {/* Top 3 podium */}
+                <View style={{ flexDirection: "row", justifyContent: "space-around", alignItems: "flex-end", marginBottom: 20, paddingTop: 8 }}>
+                  {top3.map((p, i) => {
+                    const realIdx = data.findIndex((x) => x.uid === p.uid);
+                    const h = realIdx === 0 ? 120 : realIdx === 1 ? 90 : 75;
+                    return (
+                      <Animated.View key={p.uid} entering={FadeInDown.delay(i * 100).springify()} style={{ alignItems: "center", flex: 1 }}>
+                        <Text style={{ fontSize: realIdx === 0 ? 40 : 30 }}>{avatarFor(p.uid)}</Text>
+                        <Text numberOfLines={1} style={{ fontFamily: FONT.extrabold, fontSize: 11, color: PAL.text, marginTop: 6, marginBottom: 6 }}>
+                          {p.uid === myUid ? "You" : p.name}
+                        </Text>
+                        <View style={{ width: 1, height: h, backgroundColor: realIdx === 0 ? PAL.accent : realIdx === 1 ? "#C8C8DC" : "#E0A87C", marginBottom: 4 }} />
+                        <Text style={{ fontSize: 18 }}>{medal(realIdx)}</Text>
+                        <Text style={{ fontFamily: FONT.extrabold, fontSize: 13, color: PAL.text, marginTop: 2 }}>{p.totalScore}</Text>
+                      </Animated.View>
+                    );
+                  })}
+                </View>
 
-            <View style={{ height: 1, backgroundColor: PAL.divider, marginBottom: 8 }} />
+                <View style={{ height: 1, backgroundColor: PAL.divider, marginBottom: 8 }} />
 
-            {data.slice(3).map((p, i) => {
-              const rank = i + 4;
-              return (
-                <Animated.View key={p.id} entering={FadeInDown.delay(300 + i * 50).springify()}>
-                  <Pressable
-                    onPress={() => {
-                      Haptics.selectionAsync();
-                      react(p.isYou ? "That's you! Keep going! 😎" : `${p.name} is at #${rank}! 👏`);
-                    }}
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      paddingVertical: 14,
-                      paddingHorizontal: p.isYou ? 10 : 4,
-                      backgroundColor: p.isYou ? `${PAL.accent}22` : "transparent",
-                      borderRadius: 10,
-                    }}
-                  >
-                    <Text style={{ fontFamily: FONT.extrabold, fontSize: 15, color: p.isYou ? PAL.primary : PAL.textMuted, width: 34 }}>{rank}</Text>
-                    <Text style={{ fontSize: 24, marginRight: 12 }}>{p.avatar}</Text>
-                    <Text style={{ flex: 1, fontFamily: FONT.extrabold, fontSize: 14, color: PAL.text }}>{p.isYou ? t("leaderboard.you") : p.name}</Text>
-                    <Text style={{ fontFamily: FONT.extrabold, fontSize: 15, color: PAL.primary }}>{p.score}</Text>
-                    <Text style={{ fontFamily: FONT.semibold, fontSize: 11, color: PAL.textMuted, marginLeft: 4 }}>{t("leaderboard.pts")}</Text>
-                  </Pressable>
-                  {i < data.slice(3).length - 1 && <View style={{ height: 1, backgroundColor: PAL.divider }} />}
-                </Animated.View>
-              );
-            })}
+                {/* Rank 4+ */}
+                {data.slice(3).map((p, i) => {
+                  const rank = i + 4;
+                  const isYou = p.uid === myUid;
+                  return (
+                    <Animated.View key={p.uid} entering={FadeInDown.delay(300 + i * 50).springify()}>
+                      <Pressable
+                        onPress={() => {
+                          Haptics.selectionAsync();
+                          react(isYou ? "ဒါ မင်းပဲ! ဆက်သွား! 😎" : `${p.name} #${rank} မှာ! 👏`);
+                        }}
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          paddingVertical: 14,
+                          paddingHorizontal: isYou ? 10 : 4,
+                          backgroundColor: isYou ? `${PAL.accent}22` : "transparent",
+                          borderRadius: 10,
+                        }}
+                      >
+                        <Text style={{ fontFamily: FONT.extrabold, fontSize: 15, color: isYou ? PAL.primary : PAL.textMuted, width: 34 }}>{rank}</Text>
+                        <Text style={{ fontSize: 24, marginRight: 12 }}>{avatarFor(p.uid)}</Text>
+                        <Text style={{ flex: 1, fontFamily: FONT.extrabold, fontSize: 14, color: PAL.text }}>
+                          {isYou ? t("leaderboard.you") : p.name}
+                        </Text>
+                        <Text style={{ fontFamily: FONT.extrabold, fontSize: 15, color: PAL.primary }}>{p.totalScore}</Text>
+                        <Text style={{ fontFamily: FONT.semibold, fontSize: 11, color: PAL.textMuted, marginLeft: 4 }}>{t("leaderboard.pts")}</Text>
+                      </Pressable>
+                      {i < data.slice(3).length - 1 && <View style={{ height: 1, backgroundColor: PAL.divider }} />}
+                    </Animated.View>
+                  );
+                })}
+              </>
+            )}
           </ScrollView>
         </View>
       </SafeAreaView>

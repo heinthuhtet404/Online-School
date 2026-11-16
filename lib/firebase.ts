@@ -5,12 +5,13 @@ import { getFirestore } from "firebase/firestore";
 const firebaseConfig = {
   apiKey: "AIzaSyDiIYlOMIyN9JSInP-d-9gQPkmXWYNgrAI",
   authDomain: "online-school-1350d.firebaseapp.com",
-  databaseURL: "https://online-school-1350d-default-rtdb.asia-southeast1.firebasedatabase.app",
+  databaseURL:
+    "https://online-school-1350d-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "online-school-1350d",
   storageBucket: "online-school-1350d.firebasestorage.app",
   messagingSenderId: "842719845835",
   appId: "1:842719845835:web:3e31510d9b898f2c3caa4e",
-  measurementId: "G-QCNRT5SXTC"
+  measurementId: "G-QCNRT5SXTC",
 };
 
 const app = initializeApp(firebaseConfig);

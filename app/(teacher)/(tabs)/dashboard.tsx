@@ -1,6 +1,6 @@
 import { View, Text, Dimensions, Pressable, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
@@ -18,10 +18,14 @@ import Animated, {
 } from "react-native-reanimated";
 import { useEffect, useState, useRef } from "react";
 import { FONT } from "@/lib/design";
+import { useMode } from "@/lib/mode-context";
 
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
 
+// ============================================================
+// TEACHER PALETTE
+// ============================================================
 const PAL = {
   bg: "#F0F5F8",
   bgTop: "#D4E8E6",
@@ -33,19 +37,28 @@ const PAL = {
   text: "#1E2A38",
   textMuted: "#5C6B7A",
   divider: "#D8E2E8",
+  success: "#2C7A7B",
+  danger: "#C2402B",
 };
 
-const SUBJECTS = [
-  { id: "myanmar", name: "မြန်မာစာ", emoji: "📖", color: "#E8A8A8", darkColor: "#C97B7B", lessonCount: 8, reaction: "မြန်မာစာ — စာပေ လေ့လာကြမယ်! 📖" },
-  { id: "english", name: "အင်္ဂလိပ်", emoji: "🔤", color: "#7BC4C4", darkColor: "#5CA3A3", lessonCount: 12, reaction: "English — let's read and write! 🔤" },
-  { id: "math", name: "သင်္ချာ", emoji: "🔢", color: "#9FC4E8", darkColor: "#7BA3C9", lessonCount: 10, reaction: "သင်္ချာ — ဂဏန်းတွေ ရေတွက်ကြမယ်! 🔢" },
-  { id: "science", name: "သိပ္ပံ", emoji: "🔬", color: "#A8D5BA", darkColor: "#7BB89A", lessonCount: 6, reaction: "သိပ္ပံ — စမ်းသပ်မှုတွေ လုပ်ကြမယ်! 🔬" },
-  { id: "history", name: "သမိုင်း", emoji: "🏛️", color: "#E8D47B", darkColor: "#C9B55C", lessonCount: 5, reaction: "သမိုင်း — အတိတ်ကာလကို ပြန်သွားကြမယ်! 🏛️" },
-  { id: "geography", name: "ပထဝီ", emoji: "🌍", color: "#B8A4D9", darkColor: "#9880B8", lessonCount: 7, reaction: "ပထဝီ — ကမ္ဘာကို လေ့လာကြမယ်! 🌍" },
+// ============================================================
+// GRADES — teacher colors
+// ============================================================
+const GRADES = [
+  { id: "kg", label: "KG", emoji: "🌱", color: "#A8D5BA", darkColor: "#7BB89A", students: 24, reaction: "KG class — the little ones! 🌱" },
+  { id: "g1", label: "Grade 1", emoji: "🐣", color: "#E8C547", darkColor: "#C9A42F", students: 28, reaction: "Grade 1 — so eager! 🐣" },
+  { id: "g2", label: "Grade 2", emoji: "🦊", color: "#E8A8A8", darkColor: "#C97B7B", students: 26, reaction: "Grade 2 — clever foxes! 🦊" },
+  { id: "g3", label: "Grade 3", emoji: "🐬", color: "#7BC4C4", darkColor: "#5CA3A3", students: 30, reaction: "Grade 3 — diving deep! 🐬" },
+  { id: "g4", label: "Grade 4", emoji: "🦉", color: "#B8A4D9", darkColor: "#9880B8", students: 25, reaction: "Grade 4 — wise owls! 🦉" },
+  { id: "g5", label: "Grade 5", emoji: "🚀", color: "#9FC4E8", darkColor: "#7BA3C9", students: 22, reaction: "Grade 5 — ready to launch! 🚀" },
+  { id: "g6", label: "Grade 6", emoji: "🏆", color: "#E8D47B", darkColor: "#C9B55C", students: 27, reaction: "Grade 6 — final year! 🏆" },
 ];
 
 type Mood = "idle" | "happy" | "excited" | "thinking" | "wave";
 
+// ============================================================
+// PIP — TEAL with teacher hat
+// ============================================================
 function Pip({
   mood = "idle",
   size = 80,
@@ -345,14 +358,17 @@ function Pip({
   );
 }
 
-function SubjectRow({
+// ============================================================
+// GRADE ROW
+// ============================================================
+function GradeRow({
   item,
   index,
   isActive,
   onPress,
   onHover,
 }: {
-  item: (typeof SUBJECTS)[0];
+  item: (typeof GRADES)[0];
   index: number;
   isActive: boolean;
   onPress: () => void;
@@ -446,7 +462,7 @@ function SubjectRow({
                   letterSpacing: -0.3,
                 }}
               >
-                {item.name}
+                {item.label}
               </Text>
               <Text
                 style={{
@@ -456,7 +472,7 @@ function SubjectRow({
                   marginTop: 1,
                 }}
               >
-                {item.lessonCount} သင်ခန်းစာ
+                {item.students} students
               </Text>
             </View>
           </View>
@@ -480,25 +496,26 @@ function SubjectRow({
   );
 }
 
-export default function TeacherSubjects() {
+// ============================================================
+// MAIN SCREEN
+// ============================================================
+export default function TeacherDashboard() {
   const router = useRouter();
-  const { grade } = useLocalSearchParams<{ grade: string }>();
+  const { setMode } = useMode();
   const [mood, setMood] = useState<Mood>("idle");
-  const [message, setMessage] = useState(
-    "Pick a subject to manage lessons! 📚"
-  );
+  const [message, setMessage] = useState("Welcome back, teacher! 👩‍🏫");
   const [activeId, setActiveId] = useState<string | null>(null);
-  const activeSubject = SUBJECTS.find((s) => s.id === activeId) ?? null;
+  const activeGrade = GRADES.find((g) => g.id === activeId) ?? null;
   const resetTimer = useRef<any>(null);
 
-  const react = (s: (typeof SUBJECTS)[0]) => {
+  const react = (g: (typeof GRADES)[0]) => {
     if (resetTimer.current) clearTimeout(resetTimer.current);
-    setActiveId(s.id);
+    setActiveId(g.id);
     setMood("excited");
-    setMessage(s.reaction);
+    setMessage(g.reaction);
     resetTimer.current = setTimeout(() => {
       setMood("idle");
-      setMessage("Pick a subject to manage lessons! 📚");
+      setMessage("Welcome back, teacher! 👩‍🏫");
       setActiveId(null);
     }, 2200);
   };
@@ -509,8 +526,8 @@ export default function TeacherSubjects() {
     };
   }, []);
 
-  const flameTop = activeSubject ? `${activeSubject.color}99` : PAL.accent;
-  const flameBottom = activeSubject?.color ?? PAL.accentDark;
+  const flameTop = activeGrade ? `${activeGrade.color}99` : PAL.accent;
+  const flameBottom = activeGrade?.color ?? PAL.accentDark;
 
   return (
     <View style={{ flex: 1, backgroundColor: PAL.bg }}>
@@ -529,41 +546,47 @@ export default function TeacherSubjects() {
             width: "100%",
           }}
         >
-          <Pressable
-            onPress={() => {
-              Haptics.selectionAsync();
-              router.back();
-            }}
+          <View
             style={{
-              width: 40,
-              height: 40,
-              alignItems: "center",
-              justifyContent: "center",
               marginTop: 12,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
             }}
           >
-            <Text style={{ fontSize: 22, color: PAL.text }}>←</Text>
-          </Pressable>
+            <Text
+              style={{
+                fontFamily: FONT.extrabold,
+                fontSize: 12,
+                letterSpacing: 2,
+                color: PAL.primary,
+              }}
+            >
+              TEACHER MODE
+            </Text>
+
+            
+          </View>
 
           <View
             style={{
               flexDirection: "row",
               alignItems: "center",
               gap: 12,
-              marginTop: 12,
+              marginTop: 20,
               marginBottom: 20,
             }}
           >
             <Pressable
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                react(SUBJECTS[0]);
+                react(GRADES[0]);
               }}
             >
               <Pip
                 mood={mood}
                 size={isTablet ? 90 : 76}
-                prop={activeSubject?.emoji ?? "📚"}
+                prop={activeGrade?.emoji}
                 flameTop={flameTop}
                 flameBottom={flameBottom}
                 teacher
@@ -587,34 +610,13 @@ export default function TeacherSubjects() {
             <Text
               style={{
                 fontFamily: FONT.extrabold,
-                fontSize: 11,
-                color: PAL.primary,
-                letterSpacing: 2,
-                marginBottom: 6,
-              }}
-            >
-              TEACHER MODE · {grade?.toUpperCase() ?? "KG"}
-            </Text>
-            <Text
-              style={{
-                fontFamily: FONT.extrabold,
                 fontSize: isTablet ? 38 : 30,
                 color: PAL.text,
                 letterSpacing: -1,
                 lineHeight: isTablet ? 44 : 36,
               }}
             >
-              ဘာသာရပ် ရွေးပါ
-            </Text>
-            <Text
-              style={{
-                fontFamily: FONT.semibold,
-                fontSize: 13,
-                color: PAL.textMuted,
-                marginTop: 6,
-              }}
-            >
-              အတန်း - {grade?.toUpperCase()} အတွက် သင်ခန်းစာများ စီမံရန်
+              👩‍🏫 အတန်းရွေးပါ
             </Text>
           </Animated.View>
 
@@ -631,19 +633,19 @@ export default function TeacherSubjects() {
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: 40 }}
           >
-            {SUBJECTS.map((item, i) => (
+            {GRADES.map((item, i) => (
               <View key={item.id}>
-                <SubjectRow
+                <GradeRow
                   item={item}
                   index={i}
                   isActive={activeId === item.id}
                   onHover={() => react(item)}
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                    router.push(`/(teacher)/subject/${grade}/${item.id}`);
+                    router.push(`/(teacher)/subject/${item.id}`);
                   }}
                 />
-                {i < SUBJECTS.length - 1 && (
+                {i < GRADES.length - 1 && (
                   <View
                     style={{ height: 1, backgroundColor: PAL.divider }}
                   />

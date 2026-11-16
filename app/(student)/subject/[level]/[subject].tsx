@@ -1,4 +1,4 @@
-import { View, Text, Dimensions, Pressable, ScrollView } from "react-native";
+import { View, Text, Dimensions, Pressable, ScrollView, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -19,14 +19,11 @@ import Animated, {
 } from "react-native-reanimated";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { FONT } from "@/lib/design";
-import { LessonsStore, Lesson } from "@/lib/lessons-store";
+import { getPublishedLessons, Lesson } from "@/lib/lessons-service";
 
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
 
-// ============================================================
-// PALETTE
-// ============================================================
 const PAL = {
   bg: "#FFF8F0",
   bgTop: "#FFE8D6",
@@ -42,9 +39,6 @@ const PAL = {
   divider: "#EDE3D8",
 };
 
-// ============================================================
-// SUBJECT META
-// ============================================================
 const SUBJECT_META: Record<
   string,
   { nameKey: string; emoji: string; color: string; darkColor: string }
@@ -59,9 +53,6 @@ const SUBJECT_META: Record<
 
 type Mood = "idle" | "happy" | "excited" | "thinking" | "wave" | "sad";
 
-// ============================================================
-// PIP — with sad mood
-// ============================================================
 function Pip({
   mood = "idle",
   size = 80,
@@ -126,7 +117,6 @@ function Pip({
 
   return (
     <Animated.View style={[bodyAnim, { width: size, height: size * 1.25 }]}>
-      {/* Flame */}
       <View
         style={{
           position: "absolute",
@@ -151,7 +141,6 @@ function Pip({
         />
       </View>
 
-      {/* Fins */}
       <View
         style={{
           position: "absolute",
@@ -179,7 +168,6 @@ function Pip({
         }}
       />
 
-      {/* Body */}
       <View
         style={{
           position: "absolute",
@@ -193,7 +181,6 @@ function Pip({
           borderColor: PAL.primaryDark,
         }}
       >
-        {/* Face */}
         <View
           style={{
             position: "absolute",
@@ -243,7 +230,6 @@ function Pip({
               </Animated.View>
             ))}
           </View>
-          {/* Mouth — sad mouth flips downward */}
           <View
             style={{
               alignSelf: "center",
@@ -276,7 +262,6 @@ function Pip({
             )}
           </View>
         </View>
-        {/* Window */}
         <View
           style={{
             position: "absolute",
@@ -292,7 +277,6 @@ function Pip({
         />
       </View>
 
-      {/* Prop */}
       {prop && (
         <Animated.View
           style={[
@@ -319,9 +303,6 @@ function Pip({
   );
 }
 
-// ============================================================
-// LESSON ROW — minimal list row
-// ============================================================
 function LessonRow({
   lesson,
   index,
@@ -427,7 +408,7 @@ function LessonRow({
                 marginTop: 2,
               }}
             >
-              {lesson.updatedAt}
+              {lesson.isPremium ? "⭐ Premium" : "Free"}
             </Text>
           </View>
           <Animated.View
@@ -454,9 +435,6 @@ function LessonRow({
   );
 }
 
-// ============================================================
-// MAIN SCREEN
-// ============================================================
 export default function StudentSubjectLessons() {
   const router = useRouter();
   const { t } = useTranslation();
@@ -466,26 +444,38 @@ export default function StudentSubjectLessons() {
   }>();
   const meta = SUBJECT_META[subject ?? "math"] ?? SUBJECT_META.math;
   const [lessons, setLessons] = useState<Lesson[]>([]);
+  const [loading, setLoading] = useState(true);
   const [mood, setMood] = useState<Mood>("idle");
   const [message, setMessage] = useState("");
   const [activeId, setActiveId] = useState<string | null>(null);
   const resetTimer = useRef<any>(null);
 
+  const loadLessons = useCallback(async () => {
+    if (!subject || !level) return;
+    try {
+      setLoading(true);
+      const published = await getPublishedLessons(level, subject);
+      setLessons(published);
+      if (published.length === 0) {
+        setMood("sad");
+        setMessage("No lessons yet — check back soon! 📭");
+      } else {
+        setMood("idle");
+        setMessage(`${published.length} lessons ready for you! 📚`);
+      }
+    } catch (e) {
+      console.log("❌ Load lessons error:", e);
+      setMood("sad");
+      setMessage("Could not load lessons. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }, [subject, level]);
+
   useFocusEffect(
     useCallback(() => {
-      if (subject && level) {
-        const allLessons = LessonsStore.getByGradeAndSubject(level, subject);
-        const published = allLessons.filter((l) => l.published);
-        setLessons(published);
-        if (published.length === 0) {
-          setMood("sad");
-          setMessage("No lessons yet — check back soon! 📭");
-        } else {
-          setMood("idle");
-          setMessage(`${published.length} lessons ready for you! 📚`);
-        }
-      }
-    }, [subject, level])
+      loadLessons();
+    }, [loadLessons])
   );
 
   const react = (newMood: Mood, msg: string) => {
@@ -519,6 +509,17 @@ export default function StudentSubjectLessons() {
     ? "#A0A0A0"
     : "#FFB84D";
 
+  if (loading) {
+    return (
+      <View style={{ flex: 1, backgroundColor: PAL.bg, alignItems: "center", justifyContent: "center" }}>
+        <ActivityIndicator color={PAL.primary} size="large" />
+        <Text style={{ fontFamily: FONT.semibold, fontSize: 13, color: PAL.textMuted, marginTop: 12 }}>
+          Loading lessons...
+        </Text>
+      </View>
+    );
+  }
+
   return (
     <View style={{ flex: 1, backgroundColor: PAL.bg }}>
       <LinearGradient
@@ -536,7 +537,6 @@ export default function StudentSubjectLessons() {
             width: "100%",
           }}
         >
-          {/* Back */}
           <Pressable
             onPress={() => {
               Haptics.selectionAsync();
@@ -553,7 +553,6 @@ export default function StudentSubjectLessons() {
             <Text style={{ fontSize: 22, color: PAL.text }}>←</Text>
           </Pressable>
 
-          {/* Pip + message */}
           <View
             style={{
               flexDirection: "row",
@@ -596,7 +595,6 @@ export default function StudentSubjectLessons() {
             </Animated.View>
           </View>
 
-          {/* Header — subject info inline */}
           <Animated.View entering={FadeInDown.delay(100).springify()}>
             <View
               style={{
@@ -650,7 +648,6 @@ export default function StudentSubjectLessons() {
             }}
           />
 
-          {/* Lesson list */}
           <ScrollView
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: 40 }}
@@ -692,7 +689,7 @@ export default function StudentSubjectLessons() {
                     isActive={activeId === l.id}
                     subjectColor={meta.darkColor}
                     onHover={() => {
-                      setActiveId(l.id);
+                      setActiveId(l.id ?? null);
                       setMood("excited");
                       setMessage(`"${l.title}" — tap to open! 📖`);
                     }}
